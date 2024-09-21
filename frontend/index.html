@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Reservas - Inicio</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Gestión de Reservas</h1>
+
+    <!-- Formulario de Registro -->
+    <div class="form-container">
+      <h2>Registro</h2>
+      <form id="register-form">
+        <input type="email" id="register-email" placeholder="Correo" required />
+        <input type="password" id="register-password" placeholder="Contraseña" required />
+        <select id="register-role">
+          <option value="usuario">Usuario</option>
+          <option value="administrador">Administrador</option>
+        </select>
+        <button type="submit">Registrarse</button>
+      </form>
+    </div>
+
+    <!-- Formulario de Inicio de Sesión -->
+    <div class="form-container">
+      <h2>Iniciar Sesión</h2>
+      <form id="login-form">
+        <input type="email" id="login-email" placeholder="Correo" required />
+        <input type="password" id="login-password" placeholder="Contraseña" required />
+        <button type="submit">Iniciar Sesión</button>
+      </form>
+    </div>
+
+    <div id="message"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

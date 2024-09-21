@@ -1,0 +1,47 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    color: #333;
+  }
+  
+  .container {
+    max-width: 500px;
+    margin: 50px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  h1 {
+    text-align: center;
+  }
+  
+  .form-container {
+    margin-bottom: 20px;
+  }
+  
+  input, select, button {
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+  }
+  
+  button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+  }
+  
+  button:hover {
+    background-color: #0056b3;
+  }
+  
+  #message, #admin-message {
+    margin-top: 20px;
+    text-align: center;
+    font-weight: bold;
+  }
+  
