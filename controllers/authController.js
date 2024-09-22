@@ -4,10 +4,10 @@ const User = require('../models/userModel');
 
 exports.register = async (req, res) => {
   try {
-    const { correo, contraseña, rol } = req.body;
+    const { nombre, correo, contraseña, rol } = req.body;
     const hashedPassword = await bcrypt.hash(contraseña, 10);
 
-    const result = await User.createUser(correo, hashedPassword, rol);
+    const result = await User.createUser(nombre, correo, hashedPassword, rol);
     res.status(201).json({ message: 'Usuario registrado exitosamente', userId: result.insertId });
   } catch (error) {
     res.status(500).json({ error: 'Error al registrar usuario' });
