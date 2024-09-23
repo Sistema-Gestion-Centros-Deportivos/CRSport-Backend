@@ -4,6 +4,7 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
+
 require('dotenv').config();
 
 
@@ -11,6 +12,8 @@ require('dotenv').config();
 const authRoutes = require('./routes/authRoutes');
 const instalacionesRoutes = require('./routes/instalacionesRoutes');
 const usuariosRoutes = require('./routes/usuariosRoutes');
+const reservasRoutes = require('./routes/reservasRoutes');
+
 
 const app = express();
 
@@ -63,6 +66,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 app.use('/auth', authRoutes);  // Registro y Login
 app.use('/instalaciones', instalacionesRoutes);  // CRUD Instalaciones
 app.use('/usuarios', usuariosRoutes);  // CRUD Usuarios
+app.use('/reservas', reservasRoutes); // CRUD Reservas
 
 // Ruta de prueba
 app.get('/test', (req, res) => {
