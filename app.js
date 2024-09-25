@@ -31,9 +31,9 @@ const swaggerOptions = {
     info: {
       title: 'API Documentation',
       version: '1.0.0',
-      description: 'API Information',
+      description: 'End-Points for the API',
       contact: {
-        name: 'Developer',
+        name: 'Aaron Silva',
       },
       servers: [
         {

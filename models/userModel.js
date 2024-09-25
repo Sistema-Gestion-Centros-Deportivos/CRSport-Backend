@@ -1,25 +1,147 @@
-const mysql = require('../config/db');
+// userModel.js
+const { getConnection } = require('../config/db');
+const bcrypt = require('bcrypt');
 
+// Crear un nuevo usuario con contraseña cifrada
 exports.createUser = async (nombre, correo, contraseña, rol) => {
-  const connection = await mysql.getConnection();
+  const hashedPassword = await bcrypt.hash(contraseña, 10); // Cifrado de contraseña
+  const client = await getConnection();
   try {
-    const [result] = await connection.execute(
-      'INSERT INTO usuarios (nombre, correo, contraseña, rol) VALUES (?, ?, ?, ?)',
-      [nombre, correo, contraseña, rol]
+    const result = await client.query(
+      'INSERT INTO usuarios (nombre, correo, contraseña, rol) VALUES ($1, $2, $3, $4) RETURNING *',
+      [nombre, correo, hashedPassword, rol]
     );
-    return result;
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error al crear usuario:', error);
+    throw error;
   } finally {
-    await connection.end();
+    client.release();
   }
 };
 
+// Verificar contraseña de usuario
+exports.verifyPassword = async (plainPassword, hashedPassword) => {
+  return await bcrypt.compare(plainPassword, hashedPassword); // Comparación de contraseñas
+};
+
+// Buscar usuario por correo
 exports.findUserByEmail = async (correo) => {
-  const connection = await mysql.getConnection();
+  const client = await getConnection();
   try {
-    const [rows] = await connection.execute('SELECT * FROM usuarios WHERE correo = ?', [correo]);
-    return rows[0];
+    const result = await client.query('SELECT * FROM usuarios WHERE correo = $1', [correo]);
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error al buscar usuario:', error);
+    throw error;
   } finally {
-    await connection.end();
+    client.release();
   }
 };
+
+exports.getAllUsers = async () => {
+  const client = await getConnection();
+  try {
+    const result = await client.query('SELECT * FROM usuarios');
+    return result.rows; // Retorna todos los usuarios
+  } catch (error) {
+    console.error('Error al obtener usuarios:', error);
+    throw error;
+  } finally {
+    client.release(); // Libera la conexión
+  }
+};
+
+// Obtener un usuario por ID
+exports.getUserById = async (id) => {
+  const client = await getConnection();
+  try {
+    const result = await client.query('SELECT * FROM usuarios WHERE id = $1', [id]);
+    return result.rows[0]; // Retorna el usuario encontrado
+  } catch (error) {
+    console.error('Error al obtener el usuario:', error);
+    throw error; // Lanza el error para que lo maneje el controlador
+  } finally {
+    client.release();
+  }
+};
+
+// Actualizar un usuario de manera parcial
+exports.updateUser = async (id, updates) => {
+  const client = await getConnection();
+
+  // Construir la consulta de actualización dinámicamente
+  try {
+    const fields = [];
+    const values = [];
+    let index = 1;
+
+    // Agregar campos dinámicamente
+    for (const [key, value] of Object.entries(updates)) {
+      if (value !== undefined && value !== null) {
+        fields.push(`${key} = $${index}`);
+        values.push(value);
+        index++;
+      }
+    }
+
+    // Si no hay campos para actualizar, retornar error
+    if (fields.length === 0) {
+      throw new Error('No se proporcionaron campos para actualizar.');
+    }
+
+    values.push(id); // Añadir el ID al final para la condición WHERE
+    const sql = `UPDATE usuarios SET ${fields.join(', ')} WHERE id = $${index} RETURNING *`;
+
+    // Ejecutar la consulta
+    const result = await client.query(sql, values);
+    return result.rows[0]; // Retorna el usuario actualizado
+  } catch (error) {
+    console.error('Error al actualizar el usuario:', error);
+    throw error; // Lanza el error para que lo maneje el controlador
+  } finally {
+    client.release();
+  }
+};
+
+// Eliminar un usuario
+exports.deleteUser = async (id) => {
+  const client = await getConnection();
+  try {
+    const result = await client.query('DELETE FROM usuarios WHERE id = $1 RETURNING *', [id]);
+    return result.rows[0]; // Retorna el usuario eliminado
+  } catch (error) {
+    console.error('Error al eliminar el usuario:', error);
+    throw error; // Lanza el error para que lo maneje el controlador
+  } finally {
+    client.release();
+  }
+};
+
+
+
+// const mysql = require('../config/db');
+
+// exports.createUser = async (nombre, correo, contraseña, rol) => {
+//   const connection = await mysql.getConnection();
+//   try {
+//     const [result] = await connection.execute(
+//       'INSERT INTO usuarios (nombre, correo, contraseña, rol) VALUES (?, ?, ?, ?)',
+//       [nombre, correo, contraseña, rol]
+//     );
+//     return result;
+//   } finally {
+//     await connection.end();
+//   }
+// };
+
+// exports.findUserByEmail = async (correo) => {
+//   const connection = await mysql.getConnection();
+//   try {
+//     const [rows] = await connection.execute('SELECT * FROM usuarios WHERE correo = ?', [correo]);
+//     return rows[0];
+//   } finally {
+//     await connection.end();
+//   }
+// };
 
