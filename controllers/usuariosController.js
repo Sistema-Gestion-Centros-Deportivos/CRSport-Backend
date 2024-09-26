@@ -78,16 +78,22 @@ exports.eliminarUsuario = async (req, res) => {
   }
 };
 
-// Actualizar perfil del usuario autenticado
+// Función para actualizar el perfil del usuario autenticado
 exports.actualizarPerfil = async (req, res) => {
   const { nombre, correo, contraseña } = req.body;
-  const hashedPassword = await bcrypt.hash(contraseña, 10);
   try {
-      const usuarioActualizado = await userModel.updateUserProfile(req.user.userId, nombre, correo, hashedPassword);
-      res.json({ message: 'Perfil actualizado exitosamente' });
+    // Si la contraseña es proporcionada, cifrarla antes de guardarla
+    let hashedPassword;
+    if (contraseña) {
+      hashedPassword = await bcrypt.hash(contraseña, 10);
+    }
+
+    // Lógica para actualizar el perfil del usuario autenticado
+    const usuarioActualizado = await userModel.updateUserProfile(req.user.userId, nombre, correo, hashedPassword);
+    res.json({ message: 'Perfil actualizado exitosamente', user: usuarioActualizado });
   } catch (error) {
-      console.error('Error al actualizar el perfil:', error);
-      res.status(500).json({ error: 'Error al actualizar el perfil' });
+    console.error('Error al actualizar el perfil:', error);
+    res.status(500).json({ error: 'Error al actualizar el perfil' });
   }
 };
 

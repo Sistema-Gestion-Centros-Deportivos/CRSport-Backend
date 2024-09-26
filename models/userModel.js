@@ -118,6 +118,49 @@ exports.deleteUser = async (id) => {
   }
 };
 
+// Actualizar el perfil del usuario autenticado
+exports.updateUserProfile = async (userId, nombre, correo, hashedPassword) => {
+  const client = await getConnection();
+  try {
+    // Construir la consulta de actualización dinámicamente solo con los campos proporcionados
+    const fields = [];
+    const values = [];
+    let index = 1;
+
+    if (nombre) {
+      fields.push(`nombre = $${index}`);
+      values.push(nombre);
+      index++;
+    }
+    if (correo) {
+      fields.push(`correo = $${index}`);
+      values.push(correo);
+      index++;
+    }
+    if (hashedPassword) {
+      fields.push(`contraseña = $${index}`);
+      values.push(hashedPassword);
+      index++;
+    }
+
+    // Si no hay campos para actualizar, retorna un error
+    if (fields.length === 0) {
+      throw new Error('No se proporcionaron campos para actualizar.');
+    }
+
+    values.push(userId); // Añadir el ID del usuario al final para la condición WHERE
+    const sql = `UPDATE usuarios SET ${fields.join(', ')} WHERE id = $${index} RETURNING *`;
+
+    // Ejecutar la consulta
+    const result = await client.query(sql, values);
+    return result.rows[0]; // Retorna el usuario actualizado
+  } catch (error) {
+    console.error('Error al actualizar el perfil del usuario:', error);
+    throw error; // Lanza el error para que lo maneje el controlador
+  } finally {
+    client.release();
+  }
+};
 
 
 // const mysql = require('../config/db');
