@@ -13,6 +13,7 @@ const authRoutes = require('./routes/authRoutes');
 const instalacionesRoutes = require('./routes/instalacionesRoutes');
 const usuariosRoutes = require('./routes/usuariosRoutes');
 const reservasRoutes = require('./routes/reservasRoutes');
+const bloquesTiempoRoutes = require('./routes/bloquesTiempoRoutes');
 
 
 const app = express();
@@ -29,8 +30,8 @@ const swaggerOptions = {
   swaggerDefinition: {
     openapi: '3.0.0',
     info: {
-      title: 'API Documentation',
-      version: '1.0.0',
+      title: 'Centro de Reserva API',
+      version: '1.0.1',
       description: 'End-Points for the API',
       contact: {
         name: 'Aaron Silva',
@@ -67,6 +68,7 @@ app.use('/auth', authRoutes);  // Registro y Login
 app.use('/instalaciones', instalacionesRoutes);  // CRUD Instalaciones
 app.use('/usuarios', usuariosRoutes);  // CRUD Usuarios
 app.use('/reservas', reservasRoutes); // CRUD Reservas
+app.use('/bloques-tiempo', bloquesTiempoRoutes); // CRUD Bloques de Tiempo
 
 // Ruta de prueba
 app.get('/test', (req, res) => {

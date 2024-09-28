@@ -1,14 +1,63 @@
+// reservasRoutes.js
 const express = require('express');
 const router = express.Router();
-const reservasController = require('../controllers/reservasController');
-const { authenticateToken } = require('../middlewares/authMiddleware');
-
+const { crearReserva, actualizarReserva, eliminarReserva, obtenerReservas, obtenerReserva } = require('../controllers/reservasController');
+const { authenticateToken, isAdmin } = require('../middlewares/authMiddleware');
 
 /**
  * @swagger
- * tags:
- *   name: Reservas
- *   description: Endpoints para gestionar reservas
+ * components:
+ *   schemas:
+ *     Reserva:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: ID único de la reserva
+ *           example: 1
+ *         usuario_id:
+ *           type: integer
+ *           description: ID del usuario que hizo la reserva
+ *           example: 2
+ *         instalacion_id:
+ *           type: integer
+ *           description: ID de la instalación reservada
+ *           example: 3
+ *         instalacion_nombre:
+ *           type: string
+ *           description: Nombre de la instalación reservada
+ *           example: "Sala de Conferencias"
+ *         fecha_reserva:
+ *           type: string
+ *           format: date
+ *           description: Fecha de la reserva
+ *           example: "2024-09-25"
+ *         bloque_tiempo_id:
+ *           type: integer
+ *           description: ID del bloque de tiempo asociado a la reserva
+ *           example: 1
+ *         bloque:
+ *           type: integer
+ *           description: Número del bloque de tiempo
+ *           example: 1
+ *         hora_inicio:
+ *           type: string
+ *           format: time
+ *           description: Hora de inicio del bloque de tiempo
+ *           example: "08:00:00"
+ *         hora_fin:
+ *           type: string
+ *           format: time
+ *           description: Hora de fin del bloque de tiempo
+ *           example: "08:45:00"
+ *         estado_id:
+ *           type: integer
+ *           description: ID del estado de la reserva
+ *           example: 1
+ *         estado_nombre:
+ *           type: string
+ *           description: Nombre del estado de la reserva
+ *           example: "Confirmada"
  */
 
 /**
@@ -26,28 +75,26 @@ const { authenticateToken } = require('../middlewares/authMiddleware');
  *           schema:
  *             type: object
  *             properties:
+ *               usuario_id:
+ *                 type: integer
  *               instalacion_id:
  *                 type: integer
  *               fecha_reserva:
  *                 type: string
  *                 format: date
- *               hora_inicio:
- *                 type: string
- *                 format: time
- *               hora_fin:
- *                 type: string
- *                 format: time
+ *               bloque_tiempo_id:
+ *                 type: integer
+ *               estado_id:
+ *                 type: integer
  *     responses:
  *       201:
  *         description: Reserva creada exitosamente
  *       400:
- *         description: Todos los campos son obligatorios
+ *         description: Error de validación o bloque de tiempo no disponible
  *       500:
  *         description: Error al crear la reserva
  */
-// Crear una nueva reserva
-router.post('/', authenticateToken, reservasController.crearReserva);
-
+router.post('/', authenticateToken, crearReserva);
 
 /**
  * @swagger
@@ -60,12 +107,16 @@ router.post('/', authenticateToken, reservasController.crearReserva);
  *     responses:
  *       200:
  *         description: Lista de reservas obtenida correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Reserva'
  *       500:
  *         description: Error al obtener las reservas
  */
-// Obtener todas las reservas
-router.get('/', authenticateToken, reservasController.obtenerReservas);
-
+router.get('/', authenticateToken, obtenerReservas);
 
 /**
  * @swagger
@@ -85,19 +136,22 @@ router.get('/', authenticateToken, reservasController.obtenerReservas);
  *     responses:
  *       200:
  *         description: Reserva obtenida correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Reserva'
  *       404:
  *         description: Reserva no encontrada
  *       500:
  *         description: Error al obtener la reserva
  */
-// Obtener una reserva por ID
-router.get('/:id', authenticateToken, reservasController.obtenerReserva);
+router.get('/:id', authenticateToken, obtenerReserva);
 
 
 /**
  * @swagger
  * /reservas/{id}:
- *   put:
+ *   patch:
  *     summary: Actualizar una reserva
  *     tags: [Reservas]
  *     security:
@@ -121,25 +175,19 @@ router.get('/:id', authenticateToken, reservasController.obtenerReserva);
  *               fecha_reserva:
  *                 type: string
  *                 format: date
- *               hora_inicio:
- *                 type: string
- *                 format: time
- *               hora_fin:
- *                 type: string
- *                 format: time
+ *               bloque_tiempo_id:
+ *                 type: integer
  *               estado_id:
  *                 type: integer
  *     responses:
  *       200:
- *         description: Reserva actualizada correctamente
+ *         description: Reserva actualizada exitosamente
  *       404:
  *         description: Reserva no encontrada
  *       500:
  *         description: Error al actualizar la reserva
  */
-// Actualizar una reserva
-router.put('/:id', authenticateToken, reservasController.actualizarReserva);
-
+router.patch('/:id', authenticateToken, actualizarReserva);
 
 /**
  * @swagger
@@ -158,13 +206,12 @@ router.put('/:id', authenticateToken, reservasController.actualizarReserva);
  *         description: ID de la reserva a eliminar
  *     responses:
  *       200:
- *         description: Reserva eliminada correctamente
+ *         description: Reserva eliminada exitosamente
  *       404:
  *         description: Reserva no encontrada
  *       500:
  *         description: Error al eliminar la reserva
  */
-// Eliminar una reserva
-router.delete('/:id', authenticateToken, reservasController.eliminarReserva);
+router.delete('/:id', authenticateToken, eliminarReserva);
 
 module.exports = router;
