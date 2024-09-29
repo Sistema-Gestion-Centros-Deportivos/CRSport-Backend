@@ -7,3 +7,14 @@ Notas de cambios:
 - Los EndPoint de usuario funcionan correctamente
 
 Se eliminó la carpeta frontend y se estableció solamente este directorio para el backend.
+
+
+Modo de uso
+
+Instala las dependencias con npm.
+
+npm install
+
+Ejecuta con node el app.js
+
+node app.js
