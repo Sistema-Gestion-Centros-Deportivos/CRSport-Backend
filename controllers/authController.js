@@ -15,7 +15,8 @@ const transporter = nodemailer.createTransport({
 
 exports.register = async (req, res) => {
   try {
-    const { nombre, correo, contraseña, rol } = req.body;
+    const { nombre, correo, contraseña } = req.body;
+    const rol = req.body.rol || 'usuario'; // Si no se proporciona el rol, asigna "usuario"
 
     // Crear usuario con contraseña cifrada
     const nuevoUsuario = await User.createUser(nombre, correo, contraseña, rol);
@@ -25,6 +26,7 @@ exports.register = async (req, res) => {
     res.status(500).json({ error: 'Error al registrar usuario' });
   }
 };
+
 
 exports.login = async (req, res) => {
   try {
@@ -73,7 +75,8 @@ exports.solicitarRecuperacionContraseña = async (req, res) => {
     );
 
     // Enlace para restablecer contraseña
-    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+    // const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+    const resetLink = `${process.env.FRONTEND_URL}/pages/reset-password.html?token=${resetToken}`;
 
     // Opciones del correo
     const mailOptions = {
