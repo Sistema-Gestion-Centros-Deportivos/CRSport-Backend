@@ -70,7 +70,7 @@ const { authenticateToken, isAdmin } = require('../middlewares/authMiddleware');
  *         description: Error al obtener las instalaciones
  */
 // Obtener todas las instalaciones
-router.get('/', authenticateToken, obtenerInstalaciones);
+router.get('/', obtenerInstalaciones);
 
 
 /**
