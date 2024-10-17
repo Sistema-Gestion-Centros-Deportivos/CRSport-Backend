@@ -188,7 +188,7 @@ router.post('/subir-imagen', upload.single('imagen'), subirImagenFirebase);
  *         description: Error al crear la instalación
  */
 // Crear una nueva instalación
-router.post('/', authenticateToken, isAdmin, upload.single('imagen'), crearInstalacion);
+router.post('/', authenticateToken, isAdmin, crearInstalacion);
 
 /**
  * @swagger

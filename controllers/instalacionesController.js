@@ -34,9 +34,8 @@ exports.obtenerInstalacion = async (req, res) => {
 
 // Crear una nueva instalación con imagen
 exports.crearInstalacion = async (req, res) => {
-  const { nombre, descripcion, ubicacion, disponible_desde, disponible_hasta } = req.body;
-  const imagen = req.file ? req.file.originalname : null; // Si se subió una imagen, obtener su nombre de archivo
-
+  const { nombre, descripcion, ubicacion, disponible_desde, disponible_hasta, imagen_url } = req.body;
+  
   try {
     const nuevaInstalacion = await instalacionesModel.createInstalacion(
       nombre,
@@ -44,7 +43,7 @@ exports.crearInstalacion = async (req, res) => {
       ubicacion,
       disponible_desde,
       disponible_hasta,
-      imagen // Pasamos la imagen al modelo
+      imagen_url,
     );
     res.status(201).json(nuevaInstalacion);
   } catch (error) {
@@ -91,21 +90,19 @@ exports.actualizarInstalacion = async (req, res) => {
 exports.eliminarInstalacion = async (req, res) => {
   const { id } = req.params;
   try {
-    const connection = await dbConfig.getConnection();
-    const query = 'DELETE FROM instalaciones WHERE id = ?';
-    const [result] = await connection.execute(query, [id]);
-    await connection.end(); // Liberar la conexión manualmente
+    const instalacionEliminada = await instalacionesModel.deleteInstalacion(id); // Usamos el modelo
 
-    if (result.affectedRows === 0) {
+    if (!instalacionEliminada) {
       return res.status(404).json({ error: 'Instalación no encontrada' });
     }
 
-    res.json({ message: 'Instalación eliminada exitosamente' });
+    res.json({ message: 'Instalación eliminada exitosamente', instalacion: instalacionEliminada });
   } catch (error) {
     console.error('Error al eliminar la instalación:', error);
     res.status(500).json({ error: 'Error al eliminar la instalación' });
   }
 };
+
 
 // Subir imágenes a Firebase Storage
 exports.subirImagenFirebase = async (req, res) => {
@@ -125,7 +122,7 @@ exports.subirImagenFirebase = async (req, res) => {
   });
 
   blobStream.on('finish', async () => {
-    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
+    const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${blob.name}?alt=media`;
     res.status(200).send({ message: 'Imagen subida exitosamente', imageUrl: publicUrl });
   });
 
