@@ -1,6 +1,10 @@
-// const mysql = require('mysql2/promise');
-// const dbConfig = require('../config/db');
 const instalacionesModel = require('../models/instalacionesModel');
+const multer = require('multer');
+const bucket = require('../config/firebaseConfig');
+
+// Configuración de multer para recibir archivos
+const storage = multer.memoryStorage(); // Guardar archivo en memoria temporal
+const upload = multer({ storage: storage });
 
 // Obtener todas las instalaciones
 exports.obtenerInstalaciones = async (req, res) => {
@@ -28,170 +32,105 @@ exports.obtenerInstalacion = async (req, res) => {
   }
 };
 
-// Crear una nueva instalación
+// Crear una nueva instalación con imagen
 exports.crearInstalacion = async (req, res) => {
   const { nombre, descripcion, ubicacion, disponible_desde, disponible_hasta } = req.body;
+  const imagen = req.file ? req.file.originalname : null; // Si se subió una imagen, obtener su nombre de archivo
+
   try {
     const nuevaInstalacion = await instalacionesModel.createInstalacion(
       nombre,
       descripcion,
       ubicacion,
       disponible_desde,
-      disponible_hasta
+      disponible_hasta,
+      imagen // Pasamos la imagen al modelo
     );
-    res.status(201).json({ message: 'Instalación creada exitosamente', instalacion: nuevaInstalacion });
+    res.status(201).json(nuevaInstalacion);
   } catch (error) {
     console.error('Error al crear la instalación:', error);
     res.status(500).json({ error: 'Error al crear la instalación' });
   }
 };
 
-// Actualizar una instalación
+// Actualizar una instalación con imagen o cualquier otro campo
 exports.actualizarInstalacion = async (req, res) => {
-  const { id } = req.params;
-  const updates = req.body;
-  try {
-    const instalacionActualizada = await instalacionesModel.updateInstalacion(id, updates);
-    if (!instalacionActualizada) {
-      return res.status(404).json({ error: 'Instalación no encontrada' });
+  const { nombre, descripcion, ubicacion, disponible_desde, disponible_hasta, imagen_url } = req.body;
+
+  const updates = {
+    nombre,
+    descripcion,
+    ubicacion,
+    disponible_desde,
+    disponible_hasta,
+    imagen: imagen_url // Almacenar la URL de la imagen
+  };
+
+  // Eliminar los campos que no fueron proporcionados (null o undefined)
+  Object.keys(updates).forEach(key => {
+    if (updates[key] === undefined || updates[key] === null) {
+      delete updates[key];
     }
-    res.json({ message: 'Instalación actualizada exitosamente', instalacion: instalacionActualizada });
+  });
+
+  if (Object.keys(updates).length === 0) {
+    return res.status(400).json({ error: 'No se proporcionaron campos para actualizar.' });
+  }
+
+  try {
+    const instalacionActualizada = await instalacionesModel.updateInstalacion(req.params.id, updates);
+    res.status(200).json(instalacionActualizada);
   } catch (error) {
     console.error('Error al actualizar la instalación:', error);
     res.status(500).json({ error: 'Error al actualizar la instalación' });
   }
 };
 
+
 // Eliminar una instalación
 exports.eliminarInstalacion = async (req, res) => {
   const { id } = req.params;
   try {
-    const instalacionEliminada = await instalacionesModel.deleteInstalacion(id);
-    if (!instalacionEliminada) {
+    const connection = await dbConfig.getConnection();
+    const query = 'DELETE FROM instalaciones WHERE id = ?';
+    const [result] = await connection.execute(query, [id]);
+    await connection.end(); // Liberar la conexión manualmente
+
+    if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Instalación no encontrada' });
     }
-    res.json({ message: 'Instalación eliminada exitosamente', instalacion: instalacionEliminada });
+
+    res.json({ message: 'Instalación eliminada exitosamente' });
   } catch (error) {
     console.error('Error al eliminar la instalación:', error);
     res.status(500).json({ error: 'Error al eliminar la instalación' });
   }
 };
 
+// Subir imágenes a Firebase Storage
+exports.subirImagenFirebase = async (req, res) => {
+  if (!req.file) {
+    return res.status(400).send('No se subió ningún archivo.');
+  }
 
+  const blob = bucket.file(Date.now() + '-' + req.file.originalname);
+  const blobStream = blob.createWriteStream({
+    metadata: {
+      contentType: req.file.mimetype,
+    },
+  });
 
+  blobStream.on('error', (err) => {
+    res.status(500).send({ error: err.message });
+  });
 
-// // Crear instalación
-// exports.crearInstalacion = async (req, res) => {
-//   try {
-//     const { nombre, descripcion, ubicacion, disponible_desde, disponible_hasta } = req.body;
+  blobStream.on('finish', async () => {
+    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
+    res.status(200).send({ message: 'Imagen subida exitosamente', imageUrl: publicUrl });
+  });
 
-//     // Validar formato de fecha y hora
-//     const datetimeRegex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
-//     if (!datetimeRegex.test(disponible_desde) || !datetimeRegex.test(disponible_hasta)) {
-//       return res.status(400).json({ error: 'Formato de fecha y hora inválido. Debe ser YYYY-MM-DD HH:MM:SS' });
-//     }
+  blobStream.end(req.file.buffer);
+};
 
-//     const connection = await dbConfig.getConnection();
-
-//     await connection.execute(
-//       'INSERT INTO instalaciones (nombre, descripcion, ubicacion, disponible_desde, disponible_hasta) VALUES (?, ?, ?, ?, ?)',
-//       [nombre, descripcion, ubicacion, disponible_desde, disponible_hasta]
-//     );
-//     res.status(201).json({ message: 'Instalación creada exitosamente' });
-//   } catch (error) {
-//     console.error('Error al crear la instalación:', error.message);  // Agregar más detalles del error
-//     res.status(500).json({ error: `Error al crear la instalación: ${error.message}` });
-//   }
-// };
-
-// // Obtener todas las instalaciones
-// exports.obtenerInstalaciones = async (req, res) => {
-//   try {
-//     const connection = await dbConfig.getConnection();
-//     const [rows] = await connection.execute('SELECT * FROM instalaciones');
-//     res.json(rows);
-//   } catch (error) {
-//     console.error('Error al obtener las instalaciones:', error);
-//     res.status(500).json({ error: 'Error al obtener las instalaciones' });
-//   }
-// };
-
-// // Obtener una instalación por ID
-// exports.obtenerInstalacion = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     const connection = await dbConfig.getConnection();
-//     const [rows] = await connection.execute('SELECT * FROM instalaciones WHERE id = ?', [id]);
-    
-//     if (rows.length === 0) {
-//       return res.status(404).json({ error: 'Instalación no encontrada' });
-//     }
-    
-//     res.json(rows[0]);
-//   } catch (error) {
-//     res.status(500).json({ error: 'Error al obtener la instalación' });
-//   }
-// };
-
-// // Actualizar instalación
-// exports.actualizarInstalacion = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     const { nombre, descripcion, ubicacion, disponible_desde, disponible_hasta } = req.body;
-
-//     // Crear un array para almacenar los campos a actualizar y sus valores
-//     let fields = [];
-//     let values = [];
-
-//     if (nombre) {
-//       fields.push('nombre = ?');
-//       values.push(nombre);
-//     }
-//     if (descripcion) {
-//       fields.push('descripcion = ?');
-//       values.push(descripcion);
-//     }
-//     if (ubicacion) {
-//       fields.push('ubicacion = ?');
-//       values.push(ubicacion);
-//     }
-//     if (disponible_desde) {
-//       fields.push('disponible_desde = ?');
-//       values.push(disponible_desde);
-//     }
-//     if (disponible_hasta) {
-//       fields.push('disponible_hasta = ?');
-//       values.push(disponible_hasta);
-//     }
-
-//     // Asegurarse de que hay al menos un campo para actualizar
-//     if (fields.length === 0) {
-//       return res.status(400).json({ error: 'No hay campos para actualizar' });
-//     }
-
-//     // Construir la consulta SQL
-//     const sql = `UPDATE instalaciones SET ${fields.join(', ')} WHERE id = ?`;
-//     values.push(id);
-
-//     // Obtener la conexión y ejecutar la consulta
-//     const connection = await dbConfig.getConnection();
-//     await connection.execute(sql, values);
-
-//     res.status(200).json({ message: 'Instalación actualizada correctamente' });
-//   } catch (error) {
-//     console.error('Error al actualizar la instalación:', error);
-//     res.status(500).json({ error: 'Error al actualizar la instalación' });
-//   }
-// };
-
-// // Eliminar instalación
-// exports.eliminarInstalacion = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     const connection = await dbConfig.getConnection();
-//     await connection.execute('DELETE FROM instalaciones WHERE id = ?', [id]);
-//     res.json({ message: 'Instalación eliminada exitosamente' });
-//   } catch (error) {
-//     res.status(500).json({ error: 'Error al eliminar la instalación' });
-//   }
-// };
+// Exportar la configuración de multer
+exports.upload = upload;

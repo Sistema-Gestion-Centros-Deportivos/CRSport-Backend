@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { 
-    crearInstalacion, 
-    obtenerInstalaciones, 
-    obtenerInstalacion, 
-    actualizarInstalacion, 
-    eliminarInstalacion 
+const {
+  crearInstalacion,
+  obtenerInstalaciones,
+  obtenerInstalacion,
+  actualizarInstalacion,
+  eliminarInstalacion,
+  subirImagenFirebase,
+  upload
 } = require('../controllers/instalacionesController');
 const { authenticateToken, isAdmin } = require('../middlewares/authMiddleware');
 
@@ -49,6 +51,10 @@ const { authenticateToken, isAdmin } = require('../middlewares/authMiddleware');
  *           format: date-time
  *           description: Fecha y hora hasta la cual la instalación está disponible
  *           example: 2024-09-25T18:00:00Z
+ *         imagen_url:
+ *           type: string
+ *           description: URL de la imagen de la instalación
+ *           example: https://example.com/uploads/sala-conferencias.jpg
  */
 
 /**
@@ -72,6 +78,117 @@ const { authenticateToken, isAdmin } = require('../middlewares/authMiddleware');
 // Obtener todas las instalaciones
 router.get('/', obtenerInstalaciones);
 
+/**
+ * @swagger
+ * /instalaciones/subir-imagen:
+ *   post:
+ *     summary: Subir una imagen de instalación a Firebase Storage
+ *     tags: [Instalaciones]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               imagen:
+ *                 type: string
+ *                 format: binary
+ *                 description: El archivo de imagen que se desea subir.
+ *     responses:
+ *       200:
+ *         description: Imagen subida exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Imagen subida exitosamente
+ *                 imageUrl:
+ *                   type: string
+ *                   example: https://storage.googleapis.com/bucket-name/imagen.jpg
+ *       400:
+ *         description: No se proporcionó ningún archivo o hubo un error en la subida
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: No se subió ningún archivo.
+ *       500:
+ *         description: Error interno al subir la imagen
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Error al subir la imagen a Firebase Storage.
+ */
+router.post('/subir-imagen', upload.single('imagen'), subirImagenFirebase);
+
+/**
+ * @swagger
+ * /instalaciones:
+ *   post:
+ *     summary: Crear una nueva instalación con la URL de imagen
+ *     tags: [Instalaciones]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               nombre:
+ *                 type: string
+ *                 description: Nombre de la instalación
+ *                 example: Sala de conferencias
+ *               descripcion:
+ *                 type: string
+ *                 description: Descripción de la instalación
+ *                 example: "Una sala para reuniones de negocios"
+ *               ubicacion:
+ *                 type: string
+ *                 description: Ubicación de la instalación
+ *                 example: "Edificio A"
+ *               disponible_desde:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Fecha y hora desde la cual la instalación está disponible
+ *                 example: "2024-09-25T08:00:00Z"
+ *               disponible_hasta:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Fecha y hora hasta la cual la instalación está disponible
+ *                 example: "2024-09-25T18:00:00Z"
+ *               imagen_url:
+ *                 type: string
+ *                 description: URL de la imagen de la instalación subida a Firebase
+ *                 example: "https://url-de-imagen-en-firebase"
+ *     responses:
+ *       201:
+ *         description: Instalación creada exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Instalacion'
+ *       400:
+ *         description: Datos inválidos
+ *       500:
+ *         description: Error al crear la instalación
+ */
+// Crear una nueva instalación
+router.post('/', authenticateToken, isAdmin, upload.single('imagen'), crearInstalacion);
 
 /**
  * @swagger
@@ -103,56 +220,9 @@ router.get('/:id', authenticateToken, obtenerInstalacion);
 
 /**
  * @swagger
- * /instalaciones:
- *   post:
- *     summary: Crear una nueva instalación
- *     tags: [Instalaciones]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               nombre:
- *                 type: string
- *                 description: Nombre de la instalación
- *               descripcion:
- *                 type: string
- *                 description: Descripción de la instalación
- *               ubicacion:
- *                 type: string
- *                 description: Ubicación de la instalación
- *               disponible_desde:
- *                 type: string
- *                 format: date-time
- *                 description: Fecha y hora desde la cual la instalación está disponible
- *               disponible_hasta:
- *                 type: string
- *                 format: date-time
- *                 description: Fecha y hora hasta la cual la instalación está disponible
- *     responses:
- *       201:
- *         description: Instalación creada exitosamente
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Instalacion'
- *       400:
- *         description: Datos inválidos
- *       500:
- *         description: Error al crear la instalación
- */
-// Crear una nueva instalación
-router.post('/', authenticateToken, isAdmin, crearInstalacion);
-
-/**
- * @swagger
  * /instalaciones/{id}:
  *   patch:
- *     summary: Actualizar una instalación
+ *     summary: Actualizar una instalación con la URL de la imagen
  *     tags: [Instalaciones]
  *     security:
  *       - bearerAuth: []
@@ -172,21 +242,20 @@ router.post('/', authenticateToken, isAdmin, crearInstalacion);
  *             properties:
  *               nombre:
  *                 type: string
- *                 description: Nombre de la instalación
  *               descripcion:
  *                 type: string
- *                 description: Descripción de la instalación
  *               ubicacion:
  *                 type: string
- *                 description: Ubicación de la instalación
  *               disponible_desde:
  *                 type: string
  *                 format: date-time
- *                 description: Fecha y hora desde la cual la instalación está disponible
  *               disponible_hasta:
  *                 type: string
  *                 format: date-time
- *                 description: Fecha y hora hasta la cual la instalación está disponible
+ *               imagen_url:
+ *                 type: string
+ *                 description: URL de la imagen de la instalación subida a Firebase
+ *                 example: "https://url-de-imagen-en-firebase"
  *     responses:
  *       200:
  *         description: Instalación actualizada exitosamente
@@ -201,8 +270,10 @@ router.post('/', authenticateToken, isAdmin, crearInstalacion);
  *       500:
  *         description: Error al actualizar la instalación
  */
+
 // Actualizar una instalación
 router.patch('/:id', authenticateToken, isAdmin, actualizarInstalacion);
+
 
 /**
  * @swagger

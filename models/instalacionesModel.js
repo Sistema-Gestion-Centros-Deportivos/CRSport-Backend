@@ -1,20 +1,5 @@
 const { getConnection } = require('../config/db');
 
-// exports.getAll = async () => {
-//   const connection = await mysql.getConnection();
-//   const [rows] = await connection.execute('SELECT * FROM instalaciones');
-//   return rows;
-// };
-
-// exports.create = async (nombre, descripcion, ubicacion, disponible_desde, disponible_hasta) => {
-//   const connection = await mysql.getConnection();
-//   const [result] = await connection.execute(
-//     'INSERT INTO instalaciones (nombre, descripcion, ubicacion, disponible_desde, disponible_hasta) VALUES (?, ?, ?, ?, ?)',
-//     [nombre, descripcion, ubicacion, disponible_desde, disponible_hasta]
-//   );
-//   return result;
-// };
-
 // Obtener todas las instalaciones
 exports.getAllInstalaciones = async () => {
   const client = await getConnection();
@@ -44,12 +29,12 @@ exports.getInstalacionById = async (id) => {
 };
 
 // Crear una nueva instalación
-exports.createInstalacion = async (nombre, descripcion, ubicacion, disponible_desde, disponible_hasta) => {
+exports.createInstalacion = async (nombre, descripcion, ubicacion, disponible_desde, disponible_hasta, imagen) => {
   const client = await getConnection();
   try {
     const result = await client.query(
-      'INSERT INTO instalaciones (nombre, descripcion, ubicacion, disponible_desde, disponible_hasta) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [nombre, descripcion, ubicacion, disponible_desde, disponible_hasta]
+      'INSERT INTO instalaciones (nombre, descripcion, ubicacion, disponible_desde, disponible_hasta, imagen) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [nombre, descripcion, ubicacion, disponible_desde, disponible_hasta, imagen]
     );
     return result.rows[0];
   } catch (error) {
@@ -62,35 +47,42 @@ exports.createInstalacion = async (nombre, descripcion, ubicacion, disponible_de
 
 // Actualizar una instalación
 exports.updateInstalacion = async (id, updates) => {
+  const fields = [];
+  const values = [];
+
+  // Filtrar solo los campos que no sean undefined o nulos
+  Object.keys(updates).forEach((key) => {
+    if (updates[key] !== undefined && updates[key] !== null) {
+      fields.push(`${key} = $${fields.length + 1}`);
+      values.push(updates[key]);
+    }
+  });
+
+  // Si no hay campos para actualizar, lanzar un error
+  if (fields.length === 0) {
+    throw new Error('No se proporcionaron campos para actualizar.');
+  }
+
+  values.push(id); // El id será el último valor en el array
+
+  const query = `UPDATE instalaciones SET ${fields.join(', ')} WHERE id = $${fields.length + 1}`;
+
   const client = await getConnection();
   try {
-    const fields = [];
-    const values = [];
-    let index = 1;
+    const result = await client.query(query, values);
+    await client.release(); // Cerrar la conexión
 
-    for (const [key, value] of Object.entries(updates)) {
-      if (value !== undefined && value !== null) {
-        fields.push(`${key} = $${index}`);
-        values.push(value);
-        index++;
-      }
+    if (result.rowCount === 0) {
+      throw new Error('Instalación no encontrada');
     }
 
-    if (fields.length === 0) {
-      throw new Error('No se proporcionaron campos para actualizar.');
-    }
-
-    values.push(id);
-    const sql = `UPDATE instalaciones SET ${fields.join(', ')} WHERE id = $${index} RETURNING *`;
-    const result = await client.query(sql, values);
-    return result.rows[0];
+    return result;
   } catch (error) {
-    console.error('Error al actualizar la instalación:', error);
+    console.error('Error al actualizar instalación:', error);
     throw error;
-  } finally {
-    client.release();
   }
 };
+
 
 // Eliminar una instalación
 exports.deleteInstalacion = async (id) => {
