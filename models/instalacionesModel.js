@@ -98,3 +98,23 @@ exports.deleteInstalacion = async (id) => {
   }
 };
 
+// Obtener instalaciones por actividad
+exports.getInstalacionesByActividad = async (actividadId) => {
+  const client = await getConnection();
+  try {
+    const query = `
+      SELECT i.*
+      FROM instalaciones i
+      JOIN instalaciones_actividades ia ON i.id = ia.instalacion_id
+      WHERE ia.actividad_id = $1
+    `;
+    const result = await client.query(query, [actividadId]);
+    return result.rows;
+  } catch (error) {
+    console.error('Error al obtener instalaciones por actividad:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+

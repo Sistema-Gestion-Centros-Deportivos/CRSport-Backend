@@ -129,5 +129,20 @@ exports.subirImagenFirebase = async (req, res) => {
   blobStream.end(req.file.buffer);
 };
 
+// Obtener instalaciones por actividad
+exports.obtenerInstalacionesPorActividad = async (req, res) => {
+  const { actividadId } = req.params;
+  try {
+    const instalaciones = await instalacionesModel.getInstalacionesByActividad(actividadId);
+    if (instalaciones.length === 0) {
+      return res.status(404).json({ message: 'No se encontraron instalaciones para esta actividad' });
+    }
+    res.json(instalaciones);
+  } catch (error) {
+    console.error('Error al obtener instalaciones por actividad:', error);
+    res.status(500).json({ error: 'Error al obtener instalaciones por actividad' });
+  }
+};
+
 // Exportar la configuración de multer
 exports.upload = upload;

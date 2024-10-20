@@ -7,7 +7,8 @@ const {
   actualizarInstalacion,
   eliminarInstalacion,
   subirImagenFirebase,
-  upload
+  upload,
+  obtenerInstalacionesPorActividad
 } = require('../controllers/instalacionesController');
 const { authenticateToken, isAdmin } = require('../middlewares/authMiddleware');
 
@@ -300,5 +301,38 @@ router.patch('/:id', authenticateToken, isAdmin, actualizarInstalacion);
  */
 // Eliminar una instalación
 router.delete('/:id', authenticateToken, isAdmin, eliminarInstalacion);
+
+/**
+ * @swagger
+ * /instalaciones/actividad/{actividadId}:
+ *   get:
+ *     summary: Obtener todas las instalaciones asociadas a una actividad
+ *     tags: [Instalaciones]
+ *     parameters:
+ *       - in: path
+ *         name: actividadId
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: ID de la actividad
+ *     responses:
+ *       200:
+ *         description: Lista de instalaciones obtenida correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Instalacion'
+ *       404:
+ *         description: No se encontraron instalaciones para esta actividad
+ *       500:
+ *         description: Error al obtener instalaciones por actividad
+ */
+// Obtener instalaciones por actividad
+router.get('/actividad/:actividadId', obtenerInstalacionesPorActividad);
+
+module.exports = router;
+
 
 module.exports = router;
