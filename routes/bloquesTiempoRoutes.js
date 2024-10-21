@@ -1,7 +1,7 @@
 // bloquesTiempoRoutes.js
 const express = require('express');
 const router = express.Router();
-const { crearBloqueTiempo, obtenerBloquesPorInstalacion, actualizarBloqueTiempo, eliminarBloqueTiempo } = require('../controllers/bloquesTiempoController');
+const { crearBloqueTiempo, obtenerBloquesPorInstalacion, actualizarBloqueTiempo, eliminarBloqueTiempo, obtenerBloquesTiempo} = require('../controllers/bloquesTiempoController');
 const { authenticateToken, isAdmin } = require('../middlewares/authMiddleware');
 
 /**
@@ -98,6 +98,32 @@ const { authenticateToken, isAdmin } = require('../middlewares/authMiddleware');
  *         description: Error al crear el bloque de tiempo
  */
 router.post('/', authenticateToken, isAdmin, crearBloqueTiempo);
+
+// Obtener todos los bloques de tiempo
+router.get('/', authenticateToken, isAdmin, obtenerBloquesTiempo);
+//swagger obtener todos los bloques de tiempo
+/**
+ * @swagger
+ * /bloques-tiempo:
+ *   get:
+ *     summary: Obtener todos los bloques de tiempo
+ *     tags: [Bloques de Tiempo]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de bloques de tiempo obtenida correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/BloqueTiempo'
+ *       500:
+ *         description: Error al obtener los bloques de tiempo
+ */
+
+
 
 /**
  * @swagger

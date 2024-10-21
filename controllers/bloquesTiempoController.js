@@ -23,6 +23,17 @@ exports.crearBloqueTiempo = async (req, res) => {
   };
 
 
+// Obtener todos los bloques de tiempo
+exports.obtenerBloquesTiempo = async (req, res) => {
+    try {
+        const bloques = await bloquesTiempoModel.getAllBloquesTiempo();
+        res.json(bloques);
+    } catch (error) {
+        console.error('Error al obtener los bloques de tiempo:', error);
+        res.status(500).json({ error: 'Error al obtener los bloques de tiempo' });
+    }
+};
+
 // Obtener todos los bloques de una instalación
 exports.obtenerBloquesPorInstalacion = async (req, res) => {
     const { instalacion_id } = req.params;

@@ -23,7 +23,24 @@ exports.createBloqueTiempo = async (instalacion_id, bloque, hora_inicio, hora_fi
     } finally {
       client.release();
     }
-  };
+};
+
+
+// obtener todos los bloques de tiempo
+exports.getAllBloquesTiempo = async () => {
+    const client = await getConnection();
+    try {
+      const result = await client.query('SELECT * FROM bloques_tiempo');
+      return result.rows;
+    }
+    catch (error) {
+      console.error('Error al obtener los bloques de tiempo:', error);
+      throw error;
+    }
+    finally {
+      client.release();
+    }
+};
 
 // Obtener bloques de tiempo por instalación
 exports.getBloquesByInstalacion = async (instalacion_id) => {
