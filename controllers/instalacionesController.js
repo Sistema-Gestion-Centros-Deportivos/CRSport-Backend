@@ -144,5 +144,21 @@ exports.obtenerInstalacionesPorActividad = async (req, res) => {
   }
 };
 
+// Obtener actividades por instalación
+exports.obtenerActividadesPorInstalacion = async (req, res) => {
+  const { instalacionId } = req.params;
+  try {
+    const actividades = await instalacionesModel.getActividadesByInstalacion(instalacionId);
+    if (actividades.length === 0) {
+      return res.status(404).json({ message: 'No se encontraron actividades para esta instalación' });
+    }
+    res.json(actividades);
+  } catch (error) {
+    console.error('Error al obtener actividades por instalación:', error);
+    res.status(500).json({ error: 'Error al obtener actividades por instalación' });
+  }
+};
+
+
 // Exportar la configuración de multer
 exports.upload = upload;

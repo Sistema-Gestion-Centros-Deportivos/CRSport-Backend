@@ -8,7 +8,8 @@ const {
   eliminarInstalacion,
   subirImagenFirebase,
   upload,
-  obtenerInstalacionesPorActividad
+  obtenerInstalacionesPorActividad,
+  obtenerActividadesPorInstalacion
 } = require('../controllers/instalacionesController');
 const { authenticateToken, isAdmin } = require('../middlewares/authMiddleware');
 
@@ -217,7 +218,7 @@ router.post('/', authenticateToken, isAdmin, crearInstalacion);
  *         description: Error al obtener la instalación
  */
 // Obtener una instalación por ID
-router.get('/:id', authenticateToken, obtenerInstalacion);
+router.get('/:id', obtenerInstalacion);
 
 /**
  * @swagger
@@ -332,7 +333,54 @@ router.delete('/:id', authenticateToken, isAdmin, eliminarInstalacion);
 // Obtener instalaciones por actividad
 router.get('/actividad/:actividadId', obtenerInstalacionesPorActividad);
 
-module.exports = router;
+router.get('/:instalacionId/actividades', obtenerActividadesPorInstalacion);  
+
+// Swagger de actividades por instalación
+/**
+ * @swagger
+ * /instalaciones/{instalacionId}/actividades:
+ *   get:
+ *     summary: Obtener todas las actividades asociadas a una instalación
+ *     tags: [Instalaciones]
+ *     parameters:
+ *       - in: path
+ *         name: instalacionId
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: ID de la instalación
+ *     responses:
+ *       200:
+ *         description: Lista de actividades obtenida correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Actividad'
+ *       404:
+ *         description: No se encontraron actividades para esta instalación
+ *       500:
+ *         description: Error al obtener actividades por instalación
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Actividad:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: ID único de la actividad
+ *         nombre:
+ *           type: string
+ *           description: Nombre de la actividad
+ *         descripcion:
+ *           type: string
+ *           description: Descripción de la actividad
+ */
 
 
 module.exports = router;

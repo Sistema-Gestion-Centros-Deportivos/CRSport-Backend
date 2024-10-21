@@ -118,3 +118,22 @@ exports.getInstalacionesByActividad = async (actividadId) => {
   }
 };
 
+// Obtener actividades por instalación
+exports.getActividadesByInstalacion = async (instalacionId) => {
+  const client = await getConnection();
+  try {
+    const query = `
+      SELECT a.*
+      FROM actividades a
+      JOIN instalaciones_actividades ia ON a.id = ia.actividad_id
+      WHERE ia.instalacion_id = $1
+    `;
+    const result = await client.query(query, [instalacionId]);
+    return result.rows;
+  } catch (error) {
+    console.error('Error al obtener actividades por instalación:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
