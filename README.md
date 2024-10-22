@@ -1,7 +1,7 @@
 Centro de Reservas de Centros Deportivos y Sociales.
 
-autor: @xsilvamo
-version: 1.2
+Autor: @xsilvamo,
+Version: 1.2
 
 Notas de cambios:
 
