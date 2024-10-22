@@ -1,4 +1,6 @@
-Taller de Sistemas de Información v1.2
+Centro de Reservas de Centros Deportivos y Sociales
+autor: @xsilvamo
+version: 1.2
 
 Notas de cambios:
 
@@ -9,12 +11,16 @@ Notas de cambios:
 Se eliminó la carpeta frontend y se estableció solamente este directorio para el backend.
 
 
-Modo de uso
+Modo de uso:
 
-Instala las dependencias con npm.
+1. Instala las dependencias con npm.
 
 npm install
 
-Ejecuta con node el app.js
+2. Ejecuta con node el app.js
 
-node app.js
+node .\app.js
+
+3. Documentación en Swagger
+
+http://127.0.0.1:3000/api-docs
