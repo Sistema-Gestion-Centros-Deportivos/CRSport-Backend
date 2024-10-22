@@ -1,4 +1,5 @@
-Centro de Reservas de Centros Deportivos y Sociales
+Centro de Reservas de Centros Deportivos y Sociales.
+
 autor: @xsilvamo
 version: 1.2
 
