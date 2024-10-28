@@ -127,8 +127,6 @@ exports.eliminarReserva = async (id) => {
   }
 };
 
-
-
 // Obtener todas las reservas con la información de los bloques de tiempo y la instalación
 exports.getAllReservas = async () => {
   const client = await getConnection();
@@ -151,7 +149,6 @@ exports.getAllReservas = async () => {
     client.release();
   }
 };
-
 
   // Obtener una reserva por ID con detalles
   exports.getReservaById = async (id) => {
