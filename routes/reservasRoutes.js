@@ -66,8 +66,6 @@ const { authenticateToken, isAdmin } = require('../middlewares/authMiddleware');
  *   post:
  *     summary: Crear una nueva reserva
  *     tags: [Reservas]
- *     security:
- *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -77,24 +75,34 @@ const { authenticateToken, isAdmin } = require('../middlewares/authMiddleware');
  *             properties:
  *               usuario_id:
  *                 type: integer
- *               instalacion_id:
+ *                 description: ID del usuario
+ *                 example: 19
+ *               instalacion_bloque_semanal_id:
  *                 type: integer
+ *                 description: ID del bloque semanal de la instalación
+ *                 example: 1
  *               fecha_reserva:
  *                 type: string
  *                 format: date
- *               bloque_tiempo_id:
- *                 type: integer
+ *                 description: Fecha de la reserva
+ *                 example: 2024-10-21
  *               estado_id:
  *                 type: integer
+ *                 description: ID del estado de la reserva
+ *                 example: 2
  *     responses:
  *       201:
  *         description: Reserva creada exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Reserva'
  *       400:
- *         description: Error de validación o bloque de tiempo no disponible
+ *         description: Datos inválidos
  *       500:
  *         description: Error al crear la reserva
  */
-router.post('/', authenticateToken, crearReserva);
+router.post('/', crearReserva);
 
 /**
  * @swagger
@@ -116,6 +124,7 @@ router.post('/', authenticateToken, crearReserva);
  *       500:
  *         description: Error al obtener las reservas
  */
+// Obtener todas las reservas
 router.get('/', authenticateToken, obtenerReservas);
 
 /**
@@ -195,8 +204,6 @@ router.patch('/:id', authenticateToken, actualizarReserva);
  *   delete:
  *     summary: Eliminar una reserva
  *     tags: [Reservas]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -206,12 +213,23 @@ router.patch('/:id', authenticateToken, actualizarReserva);
  *         description: ID de la reserva a eliminar
  *     responses:
  *       200:
- *         description: Reserva eliminada exitosamente
+ *         description: Reserva eliminada correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Reserva eliminada exitosamente
+ *                 reserva:
+ *                   type: object
+ *                   description: Detalles de la reserva eliminada
  *       404:
  *         description: Reserva no encontrada
  *       500:
  *         description: Error al eliminar la reserva
  */
-router.delete('/:id', authenticateToken, eliminarReserva);
+router.delete('/:id', eliminarReserva);
 
 module.exports = router;
