@@ -43,7 +43,7 @@ exports.login = async (req, res) => {
     if (match) {
       // Generar token con tiempo de expiración
       const token = jwt.sign(
-        { userId: user.id, rol: user.rol },
+        { userId: user.id, rol: user.rol, nombre: user.nombre },
         process.env.JWT_SECRET,
         { expiresIn: '1h' } // Expiración del token en 1 hora
       );
