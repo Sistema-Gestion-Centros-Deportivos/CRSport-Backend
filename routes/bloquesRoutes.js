@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { obtenerBloquesEstandar, generarBloquesSemanales, obtenerDisponibilidad, reservarBloque } = require('../controllers/bloquesController');
+const { obtenerBloquesEstandar, obtenerDisponibilidad, reservarBloque, generarBloquesPorRango } = require('../controllers/bloquesController');
 
 // Obtener todos los bloques estándar
 /**
@@ -17,12 +17,12 @@ const { obtenerBloquesEstandar, generarBloquesSemanales, obtenerDisponibilidad, 
  */
 router.get('/estandar', obtenerBloquesEstandar);
 
-// Generar bloques semanales para una instalación
+
 /**
  * @swagger
- * /bloques/generar-semanal:
+ * /bloques/generar-rango:
  *   post:
- *     summary: Generar bloques de tiempo semanales para una instalación
+ *     summary: Generar bloques de tiempo en un rango de fechas para una instalación
  *     tags: [Bloques]
  *     requestBody:
  *       required: true
@@ -33,17 +33,21 @@ router.get('/estandar', obtenerBloquesEstandar);
  *             properties:
  *               instalacionId:
  *                 type: integer
- *               fechaSemana:
+ *               fechaInicio:
  *                 type: string
  *                 format: date
- *                 description: Fecha del lunes de la semana (yyyy-mm-dd)
+ *                 description: Fecha de inicio del rango (yyyy-mm-dd)
+ *               fechaFin:
+ *                 type: string
+ *                 format: date
+ *                 description: Fecha de fin del rango (yyyy-mm-dd)
  *     responses:
  *       200:
- *         description: Bloques generados exitosamente
+ *         description: Bloques generados exitosamente para el rango de fechas
  *       500:
  *         description: Error interno al generar bloques
  */
-router.post('/generar-semanal', generarBloquesSemanales);
+router.post('/generar-rango', generarBloquesPorRango);
 
 // Obtener disponibilidad de bloques por instalación y semana
 /**
@@ -73,6 +77,8 @@ router.post('/generar-semanal', generarBloquesSemanales);
  *         description: Error al obtener la disponibilidad
  */
 router.get('/disponibilidad/:instalacionId/:fechaSemana', obtenerDisponibilidad);
+
+
 
 // Reservar un bloque de tiempo
 /**

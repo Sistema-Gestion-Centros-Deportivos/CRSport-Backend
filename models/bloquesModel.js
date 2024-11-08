@@ -14,21 +14,34 @@ exports.getBloquesEstandar = async () => {
     }
 };
 
-// Generar bloques semanales para una instalación
-exports.generarBloquesSemanales = async (instalacionId, fechaSemana) => {
+// Generar bloques en un rango de fechas para una instalación
+exports.generarBloquesPorRango = async (instalacionId, fechaInicio, fechaFin) => {
     const client = await getConnection();
     try {
-        const bloques = await this.getBloquesEstandar();
+        const bloques = await this.getBloquesEstandar(); // Obtener los bloques de tiempo estándar
         const query = `
-            INSERT INTO instalaciones_bloques_semanales (instalacion_id, bloque_tiempo_id, fecha_semana, disponible)
+            INSERT INTO instalaciones_bloques_periodicos (instalacion_id, bloque_tiempo_id, fecha, disponible)
             VALUES ($1, $2, $3, TRUE)
+            ON CONFLICT (instalacion_id, bloque_tiempo_id, fecha) DO NOTHING
         `;
 
-        for (let bloque of bloques) {
-            await client.query(query, [instalacionId, bloque.id, fechaSemana]);
+        let currentDate = new Date(fechaInicio);
+        const endDate = new Date(fechaFin);
+
+        while (currentDate <= endDate) {
+            const fechaActual = currentDate.toISOString().split('T')[0]; // Formato yyyy-mm-dd
+
+            // Recorremos los bloques para cada fecha
+            for (let bloque of bloques) {
+                // Intentamos insertar, y si el registro ya existe, lo saltamos
+                await client.query(query, [instalacionId, bloque.id, fechaActual]);
+            }
+            
+            // Avanza al siguiente día
+            currentDate.setDate(currentDate.getDate() + 1);
         }
     } catch (error) {
-        console.error('Error al generar bloques semanales:', error);
+        console.error('Error al generar bloques por rango:', error);
         throw error;
     } finally {
         client.release();

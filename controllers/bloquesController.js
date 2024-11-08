@@ -11,15 +11,14 @@ exports.obtenerBloquesEstandar = async (req, res) => {
     }
 };
 
-// Generar bloques semanales
-exports.generarBloquesSemanales = async (req, res) => {
-    const { instalacionId, fechaSemana } = req.body;
+exports.generarBloquesPorRango = async (req, res) => {
+    const { instalacionId, fechaInicio, fechaFin } = req.body;
     try {
-        await bloquesModel.generarBloquesSemanales(instalacionId, fechaSemana);
-        res.status(200).json({ message: 'Bloques semanales generados exitosamente' });
+        await bloquesModel.generarBloquesPorRango(instalacionId, fechaInicio, fechaFin);
+        res.status(200).json({ message: 'Bloques generados exitosamente para el rango de fechas' });
     } catch (error) {
-        console.error('Error al generar bloques semanales:', error);
-        res.status(500).json({ error: 'Error al generar bloques semanales' });
+        console.error('Error al generar bloques por rango:', error);
+        res.status(500).json({ error: 'Error al generar bloques por rango de fechas' });
     }
 };
 
