@@ -1,189 +1,265 @@
 // reservasModel.js
 const { getConnection } = require('../config/db');
 
-// Verificar si una reserva ya existe en un bloque de tiempo semanal específico
-exports.getReservaByBloqueSemanal = async (instalacion_bloque_semanal_id, fecha_reserva) => {
-  const client = await getConnection();
-  try {
-    const result = await client.query(
-      'SELECT * FROM reservas WHERE instalacion_bloque_semanal_id = $1 AND fecha_reserva = $2',
-      [instalacion_bloque_semanal_id, fecha_reserva]
-    );
-    return result.rows[0];
-  } catch (error) {
-    console.error('Error al verificar reserva existente:', error);
-    throw error;
-  } finally {
-    client.release();
-  }
-};
-
 // Crear una nueva reserva
-exports.createReserva = async (usuario_id, instalacion_bloque_semanal_id, fecha_reserva, estado_id) => {
+exports.crearReserva = async (usuarioId, instalacionBloquePeriodicoId, estadoId = 2) => {
   const client = await getConnection();
   try {
-    const query = `
-      INSERT INTO reservas (usuario_id, instalacion_bloque_semanal_id, fecha_reserva, estado_id)
-      VALUES ($1, $2, $3, $4)
-      RETURNING *;
-    `;
-    const values = [usuario_id, instalacion_bloque_semanal_id, fecha_reserva, estado_id];
-    const result = await client.query(query, values);
+      // Iniciar una transacción
+      await client.query('BEGIN');
 
-    // Ahora aseguramos que la disponibilidad se actualice solo para el bloque correcto
-    const actualizarDisponibilidadQuery = `
-      UPDATE instalaciones_bloques_semanales
-      SET disponible = false
-      WHERE id = $1
-      AND instalacion_id = (
-        SELECT instalacion_id
-        FROM instalaciones_bloques_semanales
-        WHERE id = $1
-      )
-      AND bloque_tiempo_id = (
-        SELECT bloque_tiempo_id
-        FROM instalaciones_bloques_semanales
-        WHERE id = $1
-      )
-      AND fecha_semana = $2
-    `;
-    await client.query(actualizarDisponibilidadQuery, [instalacion_bloque_semanal_id, fecha_reserva]);
+      // Insertar la reserva
+      const insertReservaQuery = `
+          INSERT INTO reservas (usuario_id, estado_id, instalacion_bloque_periodico_id)
+          VALUES ($1, $2, $3) RETURNING id
+      `;
+      const { rows } = await client.query(insertReservaQuery, [usuarioId, estadoId, instalacionBloquePeriodicoId]);
+      const reservaId = rows[0].id;
 
-    return result.rows[0]; // Devolver la reserva creada
+      // Actualizar la disponibilidad del bloque
+      const updateDisponibilidadQuery = `
+          UPDATE instalaciones_bloques_periodicos
+          SET disponible = FALSE
+          WHERE id = $1
+      `;
+      await client.query(updateDisponibilidadQuery, [instalacionBloquePeriodicoId]);
+
+      // Confirmar la transacción
+      await client.query('COMMIT');
+      
+      return reservaId;
   } catch (error) {
-    console.error('Error al crear la reserva:', error);
-    throw error;
+      // Revertir la transacción en caso de error
+      await client.query('ROLLBACK');
+      console.error('Error al crear la reserva:', error);
+      throw error;
   } finally {
-    client.release();
+      client.release();
   }
 };
 
-
-// Actualizar una reserva existente
-exports.updateReserva = async (id, updates) => {
-  const client = await getConnection();
-  try {
-    const fields = [];
-    const values = [];
-    let index = 1;
-
-    for (const [key, value] of Object.entries(updates)) {
-      if (value !== undefined && value !== null) {
-        fields.push(`${key} = $${index}`);
-        values.push(value);
-        index++;
-      }
-    }
-
-    if (fields.length === 0) {
-      throw new Error('No se proporcionaron campos para actualizar.');
-    }
-
-    values.push(id);
-    const sql = `UPDATE reservas SET ${fields.join(', ')} WHERE id = $${index} RETURNING *`;
-
-    const result = await client.query(sql, values);
-    return result.rows[0];
-  } catch (error) {
-    console.error('Error al actualizar la reserva:', error);
-    throw error;
-  } finally {
-    client.release();
-  }
-};
-
-// Eliminar una reserva por ID
-exports.eliminarReserva = async (id) => {
-  const client = await getConnection();
-  try {
-    // Obtener el bloque de tiempo asociado a la reserva
-    const queryObtenerReserva = 'SELECT instalacion_bloque_semanal_id FROM reservas WHERE id = $1';
-    const resultReserva = await client.query(queryObtenerReserva, [id]);
-
-    if (resultReserva.rowCount === 0) {
-      return null;  // Reserva no encontrada
-    }
-
-    const instalacion_bloque_semanal_id = resultReserva.rows[0].instalacion_bloque_semanal_id;
-
-    // Eliminar la reserva
-    const queryEliminarReserva = 'DELETE FROM reservas WHERE id = $1 RETURNING *';
-    const resultEliminar = await client.query(queryEliminarReserva, [id]);
-
-    // Actualizar la disponibilidad del bloque
-    const queryActualizarDisponibilidad = `
-      UPDATE instalaciones_bloques_semanales
-      SET disponible = true
-      WHERE id = $1
-    `;
-    await client.query(queryActualizarDisponibilidad, [instalacion_bloque_semanal_id]);
-
-    return resultEliminar.rows[0];
-  } catch (error) {
-    console.error('Error al eliminar la reserva:', error);
-    throw error;
-  } finally {
-    client.release();
-  }
-};
-
-// Obtener todas las reservas con la información de los bloques de tiempo y la instalación
+// Obtener todas las reservas
 exports.getAllReservas = async () => {
   const client = await getConnection();
   try {
-    const result = await client.query(`
-      SELECT r.id, r.fecha_reserva, r.usuario_id, r.estado_id, 
-             ibs.fecha_semana, ibs.disponible,
-             bt.bloque, bt.hora_inicio, bt.hora_fin,
-             i.nombre AS instalacion_nombre
-      FROM reservas r
-      JOIN instalaciones_bloques_semanales ibs ON r.instalacion_bloque_semanal_id = ibs.id
-      JOIN bloques_tiempo_estandar bt ON ibs.bloque_tiempo_id = bt.id
-      JOIN instalaciones i ON ibs.instalacion_id = i.id
-    `);
-    return result.rows;
+      const query = `
+          SELECT 
+              r.id AS reserva_id,
+              r.usuario_id,
+              u.nombre AS usuario_nombre,
+              r.estado_id,
+              e.nombre AS estado_nombre,
+              r.instalacion_bloque_periodico_id,
+              ibp.instalacion_id,
+              i.nombre AS instalacion_nombre,
+              ibp.bloque_tiempo_id,
+              ibp.fecha,  -- Añadimos el campo de fecha
+              b.hora_inicio,
+              b.hora_fin,
+              r.creado_en
+          FROM 
+              reservas r
+          JOIN 
+              usuarios u ON r.usuario_id = u.id
+          JOIN 
+              estados e ON r.estado_id = e.id
+          JOIN 
+              instalaciones_bloques_periodicos ibp ON r.instalacion_bloque_periodico_id = ibp.id
+          JOIN 
+              instalaciones i ON ibp.instalacion_id = i.id
+          JOIN 
+              bloques_tiempo_estandar b ON ibp.bloque_tiempo_id = b.id
+          ORDER BY 
+              r.creado_en DESC
+      `;
+      const result = await client.query(query);
+      return result.rows;
   } catch (error) {
-    console.error('Error al obtener las reservas:', error);
+      console.error('Error al obtener todas las reservas:', error);
+      throw error;
+  } finally {
+      client.release();
+  }
+};
+
+// Obtener reservas por usuario
+exports.getReservasByUsuarioId = async (usuarioId) => {
+  const client = await getConnection();
+  try {
+      const query = `
+          SELECT 
+              r.id AS reserva_id,
+              r.usuario_id,
+              u.nombre AS usuario_nombre,
+              r.estado_id,
+              e.nombre AS estado_nombre,
+              r.instalacion_bloque_periodico_id,
+              ibp.instalacion_id,
+              i.nombre AS instalacion_nombre,
+              ibp.bloque_tiempo_id,
+              ibp.fecha,
+              b.hora_inicio,
+              b.hora_fin,
+              r.creado_en
+          FROM 
+              reservas r
+          JOIN 
+              usuarios u ON r.usuario_id = u.id
+          JOIN 
+              estados e ON r.estado_id = e.id
+          JOIN 
+              instalaciones_bloques_periodicos ibp ON r.instalacion_bloque_periodico_id = ibp.id
+          JOIN 
+              instalaciones i ON ibp.instalacion_id = i.id
+          JOIN 
+              bloques_tiempo_estandar b ON ibp.bloque_tiempo_id = b.id
+          WHERE 
+              r.usuario_id = $1
+          ORDER BY 
+              r.creado_en DESC
+      `;
+      const result = await client.query(query, [usuarioId]);
+      return result.rows;
+  } catch (error) {
+      console.error('Error al obtener las reservas por usuario:', error);
+      throw error;
+  } finally {
+      client.release();
+  }
+};
+
+// Obtener reservas por instalación y fecha
+exports.getReservasPorInstalacionYFecha = async (instalacionId, fecha) => {
+  const client = await getConnection();
+  try {
+      const query = `
+          SELECT r.*, ibp.fecha AS fecha_reserva
+          FROM reservas r
+          JOIN instalaciones_bloques_periodicos ibp ON r.instalacion_bloque_periodico_id = ibp.id
+          WHERE ibp.instalacion_id = $1 AND DATE(ibp.fecha) = $2
+      `;
+      const result = await client.query(query, [instalacionId, fecha]);
+      return result.rows;
+  } catch (error) {
+      console.error('Error al obtener reservas:', error);
+      throw error;
+  } finally {
+      client.release();
+  }
+};
+
+// Modificar una reserva existente
+exports.modificarReserva = async (reservaId, bloqueId, fecha) => {
+  const client = await getConnection();
+  try {
+      const query = `
+          UPDATE reservas
+          SET instalacion_bloque_periodico_id = $1
+          WHERE id = $2
+      `;
+      await client.query(query, [bloqueId, reservaId]);
+  } catch (error) {
+      console.error('Error al modificar reserva:', error);
+      throw error;
+  } finally {
+      client.release();
+  }
+};
+
+// Eliminar una reserva para administradores
+exports.eliminarReserva = async (reservaId) => {
+  const client = await getConnection();
+  try {
+      // Cambiar disponibilidad del bloque a true antes de eliminar la reserva
+      await client.query('BEGIN'); // Inicia la transacción
+
+      const reservaQuery = `
+          SELECT instalacion_bloque_periodico_id 
+          FROM reservas 
+          WHERE id = $1
+      `;
+      const reservaResult = await client.query(reservaQuery, [reservaId]);
+      const instalacionBloquePeriodicoId = reservaResult.rows[0].instalacion_bloque_periodico_id;
+
+      const liberarBloqueQuery = `
+          UPDATE instalaciones_bloques_periodicos
+          SET disponible = true
+          WHERE id = $1
+      `;
+      await client.query(liberarBloqueQuery, [instalacionBloquePeriodicoId]);
+
+      const eliminarReservaQuery = `
+          DELETE FROM reservas 
+          WHERE id = $1
+      `;
+      await client.query(eliminarReservaQuery, [reservaId]);
+
+      await client.query('COMMIT'); // Finaliza la transacción
+  } catch (error) {
+      await client.query('ROLLBACK'); // Revierte en caso de error
+      console.error('Error al eliminar reserva:', error);
+      throw error;
+  } finally {
+      client.release();
+  }
+};
+
+// models/reservasModel.js
+exports.eliminarYLiberarReserva = async (reservaId) => {
+  const client = await getConnection();
+  try {
+    // Obtener el bloque asociado a la reserva
+    const result = await client.query(`
+      SELECT instalacion_bloque_periodico_id
+      FROM reservas
+      WHERE id = $1
+    `, [reservaId]);
+
+    const bloqueId = result.rows[0]?.instalacion_bloque_periodico_id;
+
+    if (bloqueId) {
+      // Liberar la disponibilidad del bloque
+      await client.query(`
+        UPDATE instalaciones_bloques_periodicos
+        SET disponible = TRUE
+        WHERE id = $1
+      `, [bloqueId]);
+    }
+
+    // Eliminar la reserva
+    await client.query(`
+      DELETE FROM reservas
+      WHERE id = $1
+    `, [reservaId]);
+
+  } catch (error) {
+    console.error('Error al eliminar y liberar la reserva:', error);
     throw error;
   } finally {
     client.release();
   }
 };
 
-  // Obtener una reserva por ID con detalles
-  exports.getReservaById = async (id) => {
-    const client = await getConnection();
-    try {
-      const result = await client.query(`
-        SELECT 
-          r.id,
-          r.usuario_id,
-          r.instalacion_id,
-          i.nombre AS instalacion_nombre,
-          r.fecha_reserva,
-          r.bloque_tiempo_id,
-          bt.bloque,
-          bt.hora_inicio,
-          bt.hora_fin,
-          r.estado_id,
-          e.nombre AS estado_nombre
-        FROM 
-          reservas r
-        JOIN 
-          bloques_tiempo bt ON r.bloque_tiempo_id = bt.id
-        JOIN 
-          instalaciones i ON r.instalacion_id = i.id
-        JOIN 
-          estados e ON r.estado_id = e.id
-        WHERE 
-          r.id = $1
-      `, [id]);
-      
-      return result.rows[0];
-    } catch (error) {
-      console.error('Error al obtener la reserva:', error);
+
+
+// Resumen de disponibilidad en un rango de fechas
+exports.getDisponibilidadPorRango = async (instalacionId, startDate, endDate) => {
+  const client = await getConnection();
+  try {
+      const query = `
+          SELECT ibp.fecha, ibp.disponible, bt.hora_inicio, bt.hora_fin
+          FROM instalaciones_bloques_periodicos ibp
+          JOIN bloques_tiempo_estandar bt ON ibp.bloque_tiempo_id = bt.id
+          WHERE ibp.instalacion_id = $1 AND ibp.fecha BETWEEN $2 AND $3
+          ORDER BY ibp.fecha, bt.hora_inicio
+      `;
+      const result = await client.query(query, [instalacionId, startDate, endDate]);
+      return result.rows;
+  } catch (error) {
+      console.error('Error al obtener disponibilidad:', error);
       throw error;
-    } finally {
+  } finally {
       client.release();
-    }
-  };
+  }
+};
+

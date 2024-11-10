@@ -1,7 +1,7 @@
 // reservasRoutes.js
 const express = require('express');
 const router = express.Router();
-const { crearReserva, actualizarReserva, eliminarReserva, obtenerReservas, obtenerReserva } = require('../controllers/reservasController');
+const { crearReserva, modificarReserva, eliminarReserva, obtenerTodasLasReservas, obtenerReservasPorUsuario, obtenerReservasPorInstalacionYFecha, obtenerDisponibilidadPorRango, eliminarYLiberarReserva } = require('../controllers/reservasController');
 const { authenticateToken, isAdmin } = require('../middlewares/authMiddleware');
 
 /**
@@ -64,7 +64,7 @@ const { authenticateToken, isAdmin } = require('../middlewares/authMiddleware');
  * @swagger
  * /reservas:
  *   post:
- *     summary: Crear una nueva reserva
+ *     summary: Crear una nueva reserva y marcar el bloque como no disponible
  *     tags: [Reservas]
  *     requestBody:
  *       required: true
@@ -75,30 +75,13 @@ const { authenticateToken, isAdmin } = require('../middlewares/authMiddleware');
  *             properties:
  *               usuario_id:
  *                 type: integer
- *                 description: ID del usuario
- *                 example: 19
- *               instalacion_bloque_semanal_id:
+ *                 description: ID del usuario que realiza la reserva
+ *               instalacion_bloque_periodico_id:
  *                 type: integer
- *                 description: ID del bloque semanal de la instalación
- *                 example: 1
- *               fecha_reserva:
- *                 type: string
- *                 format: date
- *                 description: Fecha de la reserva
- *                 example: 2024-10-21
- *               estado_id:
- *                 type: integer
- *                 description: ID del estado de la reserva
- *                 example: 2
+ *                 description: ID del bloque de tiempo que se desea reservar
  *     responses:
  *       201:
  *         description: Reserva creada exitosamente
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Reserva'
- *       400:
- *         description: Datos inválidos
  *       500:
  *         description: Error al crear la reserva
  */
@@ -110,68 +93,123 @@ router.post('/', crearReserva);
  *   get:
  *     summary: Obtener todas las reservas
  *     tags: [Reservas]
- *     security:
- *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Lista de reservas obtenida correctamente
+ *         description: Lista de todas las reservas
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/Reserva'
+ *                 type: object
+ *                 properties:
+ *                   reserva_id:
+ *                     type: integer
+ *                     description: ID de la reserva
+ *                   usuario_id:
+ *                     type: integer
+ *                     description: ID del usuario que realizó la reserva
+ *                   usuario_nombre:
+ *                     type: string
+ *                     description: Nombre del usuario
+ *                   estado_id:
+ *                     type: integer
+ *                     description: ID del estado de la reserva
+ *                   estado_nombre:
+ *                     type: string
+ *                     description: Nombre del estado de la reserva
+ *                   instalacion_id:
+ *                     type: integer
+ *                     description: ID de la instalación reservada
+ *                   instalacion_nombre:
+ *                     type: string
+ *                     description: Nombre de la instalación reservada
+ *                   bloque_tiempo_id:
+ *                     type: integer
+ *                     description: ID del bloque de tiempo reservado
+ *                   fecha:
+ *                     type: string
+ *                     format: date
+ *                     description: Fecha del bloque reservado
+ *                   hora_inicio:
+ *                     type: string
+ *                     format: time
+ *                     description: Hora de inicio del bloque
+ *                   hora_fin:
+ *                     type: string
+ *                     format: time
+ *                     description: Hora de fin del bloque
+ *                   creado_en:
+ *                     type: string
+ *                     format: date-time
+ *                     description: Fecha y hora de creación de la reserva
  *       500:
  *         description: Error al obtener las reservas
  */
-// Obtener todas las reservas
-router.get('/', authenticateToken, obtenerReservas);
+router.get('/', authenticateToken, obtenerTodasLasReservas);
 
 /**
  * @swagger
- * /reservas/{id}:
+ * /reservas/{usuarioId}:
  *   get:
- *     summary: Obtener una reserva por ID
+ *     summary: Obtener todas las reservas de un usuario
  *     tags: [Reservas]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: usuarioId
+ *         required: true
  *         schema:
  *           type: integer
- *         required: true
- *         description: ID de la reserva a obtener
+ *         description: ID del usuario
  *     responses:
  *       200:
- *         description: Reserva obtenida correctamente
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Reserva'
- *       404:
- *         description: Reserva no encontrada
+ *         description: Lista de reservas del usuario
  *       500:
- *         description: Error al obtener la reserva
+ *         description: Error al obtener las reservas
  */
-router.get('/:id', authenticateToken, obtenerReserva);
-
+router.get('/:usuarioId', authenticateToken, obtenerReservasPorUsuario);
 
 /**
  * @swagger
- * /reservas/{id}:
- *   patch:
- *     summary: Actualizar una reserva
+ * /reservas/instalacion/{instalacionId}/fecha/{fecha}:
+ *   get:
+ *     summary: Obtener todas las reservas de una instalación en una fecha específica
  *     tags: [Reservas]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: instalacionId
+ *         required: true
  *         schema:
  *           type: integer
+ *         description: ID de la instalación
+ *       - in: path
+ *         name: fecha
  *         required: true
- *         description: ID de la reserva a actualizar
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Fecha específica (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: Lista de reservas para la instalación en la fecha indicada
+ *       500:
+ *         description: Error al obtener las reservas
+ */
+router.get('/instalacion/:instalacionId/fecha/:fecha', obtenerReservasPorInstalacionYFecha);
+
+/**
+ * @swagger
+ * /reservas/{reservaId}:
+ *   put:
+ *     summary: Modificar una reserva existente
+ *     tags: [Reservas]
+ *     parameters:
+ *       - in: path
+ *         name: reservaId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID de la reserva
  *     requestBody:
  *       required: true
  *       content:
@@ -179,57 +217,95 @@ router.get('/:id', authenticateToken, obtenerReserva);
  *           schema:
  *             type: object
  *             properties:
- *               instalacion_id:
- *                 type: integer
- *               fecha_reserva:
- *                 type: string
- *                 format: date
  *               bloque_tiempo_id:
  *                 type: integer
- *               estado_id:
- *                 type: integer
+ *               fecha:
+ *                 type: string
+ *                 format: date
  *     responses:
  *       200:
- *         description: Reserva actualizada exitosamente
- *       404:
- *         description: Reserva no encontrada
+ *         description: Reserva modificada exitosamente
  *       500:
- *         description: Error al actualizar la reserva
+ *         description: Error al modificar reserva
  */
-router.patch('/:id', authenticateToken, actualizarReserva);
+router.put('/:reservaId', authenticateToken, modificarReserva);
 
 /**
  * @swagger
- * /reservas/{id}:
+ * /reservas/{reservaId}:
  *   delete:
- *     summary: Eliminar una reserva
+ *     summary: Eliminar una reserva y liberar el bloque reservado
  *     tags: [Reservas]
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: reservaId
+ *         required: true
  *         schema:
  *           type: integer
- *         required: true
  *         description: ID de la reserva a eliminar
  *     responses:
  *       200:
- *         description: Reserva eliminada correctamente
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Reserva eliminada exitosamente
- *                 reserva:
- *                   type: object
- *                   description: Detalles de la reserva eliminada
- *       404:
- *         description: Reserva no encontrada
+ *         description: Reserva eliminada y bloque liberado exitosamente
  *       500:
  *         description: Error al eliminar la reserva
  */
-router.delete('/:id', eliminarReserva);
+router.delete('/:reservaId', authenticateToken, eliminarReserva);
+
+/**
+ * @swagger
+ * /reservas/{reservaId}:
+ *   delete:
+ *     summary: Elimina una reserva y libera el bloque asociado
+ *     tags: [Reservas]
+ *     parameters:
+ *       - in: path
+ *         name: reservaId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID de la reserva a eliminar
+ *     responses:
+ *       200:
+ *         description: Reserva eliminada y bloque liberado exitosamente
+ *       500:
+ *         description: Error al eliminar y liberar la reserva
+ */
+router.delete('/:reservaId', authenticateToken, eliminarYLiberarReserva);
+
+/**
+ * @swagger
+ * /reservas/instalacion/{instalacionId}/disponibilidad:
+ *   get:
+ *     summary: Obtener disponibilidad de una instalación en un rango de fechas
+ *     tags: [Reservas]
+ *     parameters:
+ *       - in: path
+ *         name: instalacionId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID de la instalación
+ *       - in: query
+ *         name: start_date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Fecha de inicio del rango
+ *       - in: query
+ *         name: end_date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Fecha de fin del rango
+ *     responses:
+ *       200:
+ *         description: Resumen de disponibilidad por fecha y bloque de tiempo
+ *       500:
+ *         description: Error al obtener disponibilidad
+ */
+router.get('/instalacion/:instalacionId/disponibilidad', authenticateToken,  obtenerDisponibilidadPorRango);
+
 
 module.exports = router;

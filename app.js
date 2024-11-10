@@ -13,7 +13,6 @@ const authRoutes = require('./routes/authRoutes');
 const instalacionesRoutes = require('./routes/instalacionesRoutes');
 const usuariosRoutes = require('./routes/usuariosRoutes');
 const reservasRoutes = require('./routes/reservasRoutes');
-const bloquesTiempoRoutes = require('./routes/bloquesTiempoRoutes');
 const actividadesRoutes = require('./routes/actividadesRoutes');
 const bloquesRoutes = require('./routes/bloquesRoutes');
 
@@ -72,7 +71,6 @@ app.use('/auth', authRoutes);  // Registro y Login
 app.use('/instalaciones', instalacionesRoutes);  // CRUD Instalaciones
 app.use('/usuarios', usuariosRoutes);  // CRUD Usuarios
 app.use('/reservas', reservasRoutes); // CRUD Reservas
-app.use('/bloques-tiempo', bloquesTiempoRoutes); // CRUD Bloques de Tiempo
 app.use('/actividades', actividadesRoutes);
 app.use('/bloques', bloquesRoutes);
 

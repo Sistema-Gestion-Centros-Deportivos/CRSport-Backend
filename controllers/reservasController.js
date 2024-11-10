@@ -1,86 +1,103 @@
 // reservasController.js
 const reservasModel = require('../models/reservasModel');
 
-// Controlador para crear una nueva reserva
+// Crear una nueva reserva
 exports.crearReserva = async (req, res) => {
-  const { usuario_id, instalacion_bloque_semanal_id, fecha_reserva, estado_id } = req.body;
-
-  if (!usuario_id || !instalacion_bloque_semanal_id || !fecha_reserva || !estado_id) {
-    return res.status(400).json({ error: 'Todos los campos son obligatorios' });
-  }
+  const { usuario_id, instalacion_bloque_periodico_id } = req.body;
 
   try {
-    const nuevaReserva = await reservasModel.createReserva(
-      usuario_id,
-      instalacion_bloque_semanal_id,
-      fecha_reserva,
-      estado_id
-    );
-    res.status(201).json(nuevaReserva);
+      const reservaId = await reservasModel.crearReserva(usuario_id, instalacion_bloque_periodico_id);
+
+      res.status(201).json({ message: 'Reserva creada exitosamente', reservaId });
   } catch (error) {
-    console.error('Error al crear la reserva:', error);
-    res.status(500).json({ error: 'Error al crear la reserva' });
+      console.error('Error al crear la reserva:', error);
+      res.status(500).json({ error: 'Error al crear la reserva' });
   }
 };
 
 // Obtener todas las reservas
-exports.obtenerReservas = async (req, res) => {
+exports.obtenerTodasLasReservas = async (req, res) => {
   try {
-    const reservas = await reservasModel.getAllReservas();
-    res.json(reservas);
+      const reservas = await reservasModel.getAllReservas();
+      res.json(reservas);
   } catch (error) {
-    console.error('Error al obtener las reservas:', error);
-    res.status(500).json({ error: 'Error al obtener las reservas.' });
+      console.error('Error al obtener todas las reservas:', error);
+      res.status(500).json({ error: 'Error al obtener todas las reservas' });
   }
 };
 
-// Actualizar una reserva
-exports.actualizarReserva = async (req, res) => {
-  const { id } = req.params;
-  const updates = req.body;
+// Obtener reservas por usuario
+exports.obtenerReservasPorUsuario = async (req, res) => {
+  const { usuarioId } = req.params;
   try {
-    const reservaActualizada = await reservasModel.updateReserva(id, updates);
-    if (!reservaActualizada) {
-      return res.status(404).json({ error: 'Reserva no encontrada' });
-    }
-    res.json({ message: 'Reserva actualizada exitosamente', reserva: reservaActualizada });
+      const reservas = await reservasModel.getReservasByUsuarioId(usuarioId);
+      res.json(reservas);
   } catch (error) {
-    console.error('Error al actualizar la reserva:', error);
-    res.status(500).json({ error: error.message });
+      console.error('Error al obtener reservas por usuario:', error);
+      res.status(500).json({ error: 'Error al obtener reservas por usuario' });
   }
 };
 
-// Controlador para eliminar una reserva
+// Obtener reservas por instalación y fecha
+exports.obtenerReservasPorInstalacionYFecha = async (req, res) => {
+  const { instalacionId, fecha } = req.params;
+  try {
+      const reservas = await reservasModel.getReservasPorInstalacionYFecha(instalacionId, fecha);
+      res.json(reservas);
+  } catch (error) {
+      console.error('Error al obtener reservas:', error);
+      res.status(500).json({ error: 'Error al obtener reservas' });
+  }
+};
+
+// Modificar una reserva existente
+exports.modificarReserva = async (req, res) => {
+  const { reservaId } = req.params;
+  const { bloque_tiempo_id, fecha } = req.body;
+  try {
+      await reservasModel.modificarReserva(reservaId, bloque_tiempo_id, fecha);
+      res.status(200).json({ message: 'Reserva modificada exitosamente' });
+  } catch (error) {
+      console.error('Error al modificar reserva:', error);
+      res.status(500).json({ error: 'Error al modificar reserva' });
+  }
+};
+
+// Eliminar una reserva para administradores
 exports.eliminarReserva = async (req, res) => {
-  const { id } = req.params;
+  const { reservaId } = req.params;
+  try {
+      await reservasModel.eliminarReserva(reservaId);
+      res.json({ message: 'Reserva eliminada y bloque liberado exitosamente' });
+  } catch (error) {
+      console.error('Error al eliminar reserva:', error);
+      res.status(500).json({ error: 'Error al eliminar la reserva' });
+  }
+};
+
+// Cancelar y liberar una reserva
+exports.eliminarYLiberarReserva = async (req, res) => {
+  const { reservaId } = req.params;
 
   try {
-    const reservaEliminada = await reservasModel.eliminarReserva(id);
-
-    if (!reservaEliminada) {
-      return res.status(404).json({ error: 'Reserva no encontrada' });
-    }
-
-    res.json({ message: 'Reserva eliminada exitosamente', reserva: reservaEliminada });
+    await reservasModel.eliminarYLiberarReserva(reservaId);
+    res.status(200).json({ message: 'Reserva eliminada y bloque liberado exitosamente' });
   } catch (error) {
-    console.error('Error al eliminar la reserva:', error);
-    res.status(500).json({ error: 'Error al eliminar la reserva' });
+    console.error('Error al eliminar y liberar la reserva:', error);
+    res.status(500).json({ error: 'Error al eliminar y liberar la reserva' });
   }
 };
 
 
-
-// Obtener una reserva por ID
-exports.obtenerReserva = async (req, res) => {
-  const { id } = req.params;
+// Obtener disponibilidad de una instalación en un rango de fechas
+exports.obtenerDisponibilidadPorRango = async (req, res) => {
+  const { instalacionId } = req.params;
+  const { start_date, end_date } = req.query;
   try {
-    const reserva = await reservasModel.getReservaById(id);
-    if (!reserva) {
-      return res.status(404).json({ error: 'Reserva no encontrada' });
-    }
-    res.json(reserva);
+      const disponibilidad = await reservasModel.getDisponibilidadPorRango(instalacionId, start_date, end_date);
+      res.json(disponibilidad);
   } catch (error) {
-    console.error('Error al obtener la reserva:', error);
-    res.status(500).json({ error: 'Error al obtener la reserva' });
+      console.error('Error al obtener disponibilidad:', error);
+      res.status(500).json({ error: 'Error al obtener disponibilidad' });
   }
 };
