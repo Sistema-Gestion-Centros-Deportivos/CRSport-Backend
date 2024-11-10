@@ -240,8 +240,6 @@ exports.eliminarYLiberarReserva = async (reservaId) => {
   }
 };
 
-
-
 // Resumen de disponibilidad en un rango de fechas
 exports.getDisponibilidadPorRango = async (instalacionId, startDate, endDate) => {
   const client = await getConnection();
