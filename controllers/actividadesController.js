@@ -21,3 +21,15 @@ exports.asignarActividadAInstalacion = async (req, res) => {
     res.status(500).json({ error: 'Error al asignar actividad a instalación' });
   }
 };
+
+// crear una nueva actividad
+exports.crearActividad = async (req, res) => {
+  const { nombre } = req.body;
+  try {
+    const result = await actividadesModel.crearActividad(nombre);
+    res.status(201).json(result);
+  } catch (error) {
+    console.error('Error al crear actividad:', error);
+    res.status(500).json({ error: 'Error al crear actividad' });
+  }
+};

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { obtenerActividades, asignarActividadAInstalacion } = require('../controllers/actividadesController');
+const { obtenerActividades, asignarActividadAInstalacion, crearActividad } = require('../controllers/actividadesController');
 
 
 /**
@@ -57,5 +57,34 @@ router.post('/asignar', asignarActividadAInstalacion);
  *       500:
  *         description: Error al asignar actividad a instalación
  */
+
+/**
+ * @swagger
+ * /actividades:
+ *   post:
+ *     summary: Crear una nueva actividad
+ *     tags: [Actividades]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               nombre:
+ *                 type: string
+ *             example:
+ *               nombre: Yoga
+ *     responses:
+ *       201:
+ *         description: Actividad creada correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Actividad'
+ *       500:
+ *         description: Error al crear actividad
+ */
+router.post('/', crearActividad);
 
 module.exports = router;

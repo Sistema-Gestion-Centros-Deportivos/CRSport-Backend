@@ -30,3 +30,20 @@ exports.asignarActividadAInstalacion = async (instalacionId, actividadId) => {
     client.release();
   }
 };
+
+// crear una nueva actividad
+exports.crearActividad = async (nombre, descripcion) => {
+  const client = await getConnection();
+  try {
+    const result = await client.query(
+      'INSERT INTO actividades (nombre) VALUES ($1) RETURNING *',
+      [nombre]
+    );
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error al crear actividad:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
