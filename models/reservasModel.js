@@ -261,3 +261,46 @@ exports.getDisponibilidadPorRango = async (instalacionId, startDate, endDate) =>
   }
 };
 
+// Obtener detalles de una reserva
+exports.obtenerDetallesReserva = async (reservaId) => {
+    const client = await getConnection();
+    try {
+      const query = `
+        SELECT 
+          i.nombre AS instalacion,
+          ibp.fecha,
+          b.hora_inicio,
+          b.hora_fin
+        FROM reservas r
+        INNER JOIN instalaciones_bloques_periodicos ibp ON r.instalacion_bloque_periodico_id = ibp.id
+        INNER JOIN instalaciones i ON ibp.instalacion_id = i.id
+        INNER JOIN bloques_tiempo_estandar b ON ibp.bloque_tiempo_id = b.id
+        WHERE r.id = $1
+      `;
+      const { rows } = await client.query(query, [reservaId]);
+      return rows[0];
+    } catch (error) {
+      console.error('Error al obtener detalles de la reserva:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+};
+  
+// Obtener el correo de un usuario
+exports.obtenerCorreoUsuario = async (usuarioId) => {
+    const client = await getConnection();
+    try {
+      const query = `
+        SELECT correo FROM usuarios WHERE id = $1
+      `;
+      const { rows } = await client.query(query, [usuarioId]);
+      return rows[0].correo;
+    } catch (error) {
+      console.error('Error al obtener el correo del usuario:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+};
+  

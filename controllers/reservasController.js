@@ -1,17 +1,26 @@
 // reservasController.js
 const reservasModel = require('../models/reservasModel');
+const { enviarCorreoReserva } = require('../services/emailService');
 
 // Crear una nueva reserva
 exports.crearReserva = async (req, res) => {
   const { usuario_id, instalacion_bloque_periodico_id } = req.body;
 
   try {
-      const reservaId = await reservasModel.crearReserva(usuario_id, instalacion_bloque_periodico_id);
+    // Crear la reserva
+    const reservaId = await reservasModel.crearReserva(usuario_id, instalacion_bloque_periodico_id);
 
-      res.status(201).json({ message: 'Reserva creada exitosamente', reservaId });
+    // Obtener detalles de la reserva para el correo
+    const detallesReserva = await reservasModel.obtenerDetallesReserva(reservaId);
+
+    // Enviar correo al usuario
+    const userCorreo = await reservasModel.obtenerCorreoUsuario(usuario_id);
+    await enviarCorreoReserva(userCorreo, detallesReserva);
+
+    res.status(201).json({ message: 'Reserva creada exitosamente y correo enviado', reservaId });
   } catch (error) {
-      console.error('Error al crear la reserva:', error);
-      res.status(500).json({ error: 'Error al crear la reserva' });
+    console.error('Error al crear la reserva:', error);
+    res.status(500).json({ error: 'Error al crear la reserva' });
   }
 };
 
