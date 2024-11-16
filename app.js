@@ -15,6 +15,7 @@ const usuariosRoutes = require('./routes/usuariosRoutes');
 const reservasRoutes = require('./routes/reservasRoutes');
 const actividadesRoutes = require('./routes/actividadesRoutes');
 const bloquesRoutes = require('./routes/bloquesRoutes');
+const pagosRoutes = require('./routes/pagosRoutes');
 
 const app = express();
 
@@ -73,6 +74,7 @@ app.use('/usuarios', usuariosRoutes);  // CRUD Usuarios
 app.use('/reservas', reservasRoutes); // CRUD Reservas
 app.use('/actividades', actividadesRoutes);
 app.use('/bloques', bloquesRoutes);
+app.use('/pagos', pagosRoutes);
 
 // Ruta de prueba
 app.get('/test', (req, res) => {
