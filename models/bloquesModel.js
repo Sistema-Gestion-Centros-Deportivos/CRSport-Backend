@@ -19,6 +19,24 @@ exports.crearBloqueEstandar = async (bloque, horaInicio, horaFin) => {
     }
 };
 
+exports.obtenerInstalacionPorBloque = async (bloqueId) => {
+    const client = await getConnection();
+    try {
+      const query = `
+        SELECT i.tipo_instalacion, i.valor 
+        FROM instalaciones_bloques_periodicos ibp
+        JOIN instalaciones i ON ibp.instalacion_id = i.id
+        WHERE ibp.id = $1
+      `;
+      const result = await client.query(query, [bloqueId]);
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error al obtener la instalación por bloque:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+};
 
 // Obtener todos los bloques estándar
 exports.getBloquesEstandar = async () => {
@@ -257,3 +275,6 @@ exports.liberarBloque = async (instalacionId, bloqueTiempoId, fecha) => {
         client.release();
     }
 };
+
+
+  

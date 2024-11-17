@@ -29,12 +29,12 @@ exports.getInstalacionById = async (id) => {
 };
 
 // Crear una nueva instalación
-exports.createInstalacion = async (nombre, descripcion, ubicacion, disponible_desde, disponible_hasta, imagen) => {
+exports.createInstalacion = async (nombre, descripcion, ubicacion, disponible_desde, disponible_hasta, imagen, tipo_instalacion, valor) => {
   const client = await getConnection();
   try {
     const result = await client.query(
-      'INSERT INTO instalaciones (nombre, descripcion, ubicacion, disponible_desde, disponible_hasta, imagen) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [nombre, descripcion, ubicacion, disponible_desde, disponible_hasta, imagen]
+      'INSERT INTO instalaciones (nombre, descripcion, ubicacion, disponible_desde, disponible_hasta, imagen, tipo_instalacion, valor) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      [nombre, descripcion, ubicacion, disponible_desde, disponible_hasta, imagen, tipo_instalacion, valor]
     );
     return result.rows[0];
   } catch (error) {

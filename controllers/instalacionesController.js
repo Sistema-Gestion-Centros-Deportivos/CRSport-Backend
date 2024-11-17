@@ -34,7 +34,7 @@ exports.obtenerInstalacion = async (req, res) => {
 
 // Crear una nueva instalación con imagen
 exports.crearInstalacion = async (req, res) => {
-  const { nombre, descripcion, ubicacion, disponible_desde, disponible_hasta, imagen_url } = req.body;
+  const { nombre, descripcion, ubicacion, disponible_desde, disponible_hasta, imagen_url, tipo_instalacion, valor } = req.body;
   
   try {
     const nuevaInstalacion = await instalacionesModel.createInstalacion(
@@ -44,6 +44,8 @@ exports.crearInstalacion = async (req, res) => {
       disponible_desde,
       disponible_hasta,
       imagen_url,
+      tipo_instalacion,
+      valor
     );
     res.status(201).json(nuevaInstalacion);
   } catch (error) {
@@ -54,7 +56,7 @@ exports.crearInstalacion = async (req, res) => {
 
 // Actualizar una instalación con imagen o cualquier otro campo
 exports.actualizarInstalacion = async (req, res) => {
-  const { nombre, descripcion, ubicacion, disponible_desde, disponible_hasta, imagen_url } = req.body;
+  const { nombre, descripcion, ubicacion, disponible_desde, disponible_hasta, imagen_url, tipo_instalacion, valor } = req.body;
 
   const updates = {
     nombre,
@@ -62,7 +64,9 @@ exports.actualizarInstalacion = async (req, res) => {
     ubicacion,
     disponible_desde,
     disponible_hasta,
-    imagen: imagen_url // Almacenar la URL de la imagen
+    imagen: imagen_url, // Almacenar la URL de la imagen
+    tipo_instalacion,
+    valor
   };
 
   // Eliminar los campos que no fueron proporcionados (null o undefined)

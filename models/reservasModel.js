@@ -5,36 +5,47 @@ const { getConnection } = require('../config/db');
 exports.crearReserva = async (usuarioId, instalacionBloquePeriodicoId, estadoId = 2) => {
   const client = await getConnection();
   try {
-      // Iniciar una transacción
-      await client.query('BEGIN');
+    // Iniciar una transacción
+    await client.query('BEGIN');
 
-      // Insertar la reserva
-      const insertReservaQuery = `
-          INSERT INTO reservas (usuario_id, estado_id, instalacion_bloque_periodico_id)
-          VALUES ($1, $2, $3) RETURNING id
-      `;
-      const { rows } = await client.query(insertReservaQuery, [usuarioId, estadoId, instalacionBloquePeriodicoId]);
-      const reservaId = rows[0].id;
+    // Verificar si el bloque está disponible
+    const verificarDisponibilidadQuery = `
+      SELECT disponible
+      FROM instalaciones_bloques_periodicos
+      WHERE id = $1
+    `;
+    const { rows: disponibilidadRows } = await client.query(verificarDisponibilidadQuery, [instalacionBloquePeriodicoId]);
 
-      // Actualizar la disponibilidad del bloque
-      const updateDisponibilidadQuery = `
-          UPDATE instalaciones_bloques_periodicos
-          SET disponible = FALSE
-          WHERE id = $1
-      `;
-      await client.query(updateDisponibilidadQuery, [instalacionBloquePeriodicoId]);
+    if (!disponibilidadRows[0] || !disponibilidadRows[0].disponible) {
+      throw new Error('El bloque no está disponible.');
+    }
 
-      // Confirmar la transacción
-      await client.query('COMMIT');
-      
-      return reservaId;
+    // Insertar la reserva
+    const insertReservaQuery = `
+      INSERT INTO reservas (usuario_id, estado_id, instalacion_bloque_periodico_id)
+      VALUES ($1, $2, $3) RETURNING id
+    `;
+    const { rows } = await client.query(insertReservaQuery, [usuarioId, estadoId, instalacionBloquePeriodicoId]);
+    const reservaId = rows[0].id;
+
+    // Actualizar la disponibilidad del bloque
+    const updateDisponibilidadQuery = `
+      UPDATE instalaciones_bloques_periodicos
+      SET disponible = FALSE
+      WHERE id = $1
+    `;
+    await client.query(updateDisponibilidadQuery, [instalacionBloquePeriodicoId]);
+
+    // Confirmar la transacción
+    await client.query('COMMIT');
+    return reservaId;
   } catch (error) {
-      // Revertir la transacción en caso de error
-      await client.query('ROLLBACK');
-      console.error('Error al crear la reserva:', error);
-      throw error;
+    // Revertir la transacción en caso de error
+    await client.query('ROLLBACK');
+    console.error('Error al crear la reserva:', error);
+    throw error;
   } finally {
-      client.release();
+    client.release();
   }
 };
 
@@ -303,4 +314,78 @@ exports.obtenerCorreoUsuario = async (usuarioId) => {
       client.release();
     }
 };
-  
+
+// Obtener el número de reservas de un usuario en una fecha específica
+exports.contarReservasPorFecha = async (usuarioId, fecha) => {
+  const client = await getConnection();
+  try {
+      const query = `
+          SELECT COUNT(*) AS total
+          FROM reservas r
+          INNER JOIN instalaciones_bloques_periodicos ibp ON r.instalacion_bloque_periodico_id = ibp.id
+          WHERE r.usuario_id = $1 AND ibp.fecha::date = $2
+      `;
+      const { rows } = await client.query(query, [usuarioId, fecha]);
+      return parseInt(rows[0].total, 10);
+  } catch (error) {
+      console.error('Error al contar las reservas:', error);
+      throw error;
+  } finally {
+      client.release();
+  }
+};
+
+
+// Obtener bloque por su ID
+exports.obtenerBloquePorId = async (bloqueId) => {
+  const client = await getConnection();
+  try {
+      const query = `
+          SELECT fecha
+          FROM instalaciones_bloques_periodicos
+          WHERE id = $1
+      `;
+      const { rows } = await client.query(query, [bloqueId]);
+      return rows[0];
+  } catch (error) {
+      console.error('Error al obtener el bloque por ID:', error);
+      throw error;
+  } finally {
+      client.release();
+  }
+};
+
+exports.crearReservaPorPagoExitoso = async (buyOrder) => {
+  const client = await getConnection();
+  try {
+      // Encuentra la reserva asociada al buyOrder
+      const reservaQuery = `
+          SELECT reserva_id, instalacion_bloque_periodico_id, usuario_id
+          FROM pagos
+          WHERE transaccion_id = $1
+      `;
+      const { rows } = await client.query(reservaQuery, [buyOrder]);
+
+      if (rows.length === 0) {
+          throw new Error('Reserva asociada al pago no encontrada.');
+      }
+
+      const { reserva_id, instalacion_bloque_periodico_id, usuario_id } = rows[0];
+
+      // Marca el bloque como no disponible
+      const updateDisponibilidadQuery = `
+          UPDATE instalaciones_bloques_periodicos
+          SET disponible = FALSE
+          WHERE id = $1
+      `;
+      await client.query(updateDisponibilidadQuery, [instalacion_bloque_periodico_id]);
+
+      // Retorna información para la confirmación
+      return { reservaId: reserva_id, usuarioId: usuario_id };
+  } catch (error) {
+      console.error('Error al crear reserva por pago exitoso:', error);
+      throw error;
+  } finally {
+      client.release();
+  }
+};

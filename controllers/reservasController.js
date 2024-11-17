@@ -1,19 +1,57 @@
 // reservasController.js
+const { WebpayPlus } = require('transbank-sdk');
 const reservasModel = require('../models/reservasModel');
+const bloquesModel = require('../models/bloquesModel');
 const { enviarCorreoReserva } = require('../services/emailService');
+const pagosModel = require('../models/pagosModel');
 
 // Crear una nueva reserva
 exports.crearReserva = async (req, res) => {
   const { usuario_id, instalacion_bloque_periodico_id } = req.body;
+  const LIMITE_RESERVAS_POR_DIA = 5;
 
   try {
-    // Crear la reserva
+    // Obtener detalles del bloque y la instalación
+    const bloque = await reservasModel.obtenerBloquePorId(instalacion_bloque_periodico_id);
+    if (!bloque) {
+      return res.status(400).json({ error: 'Bloque no encontrado' });
+    }
+
+    const instalacion = await bloquesModel.obtenerInstalacionPorBloque(instalacion_bloque_periodico_id);
+    if (!instalacion) {
+      return res.status(400).json({ error: 'Instalación no encontrada' });
+    }
+
+    const { tipo_instalacion, valor } = instalacion;
+
+    // Verificar límite de reservas
+    const totalReservas = await reservasModel.contarReservasPorFecha(usuario_id, bloque.fecha);
+    if (totalReservas >= LIMITE_RESERVAS_POR_DIA) {
+      return res.status(400).json({ error: 'Has alcanzado el límite de reservas para este día.' });
+    }
+
+    // Flujo para instalaciones premium
+    if (tipo_instalacion === 'premium') {
+      const transaction = new WebpayPlus.Transaction();
+      const buyOrder = `order-${Date.now()}`;
+      const sessionId = `session-${usuario_id}`;
+      const returnUrl = `${process.env.BASE_URL}/pagos/confirmar`;
+      const finalUrl = `${process.env.BASE_URL}/pagos/resultado`;
+
+      // Crear transacción en Webpay Plus
+      const response = await transaction.create(buyOrder, sessionId, valor, returnUrl);
+
+      // Guardar pago pendiente
+      await pagosModel.crearPago(usuario_id, null, valor, 'pendiente', response.token);
+
+      return res.status(200).json({ url: response.url, token: response.token });
+    }
+
+    // Flujo para instalaciones gratuitas
     const reservaId = await reservasModel.crearReserva(usuario_id, instalacion_bloque_periodico_id);
 
     // Obtener detalles de la reserva para el correo
     const detallesReserva = await reservasModel.obtenerDetallesReserva(reservaId);
-
-    // Enviar correo al usuario
     const userCorreo = await reservasModel.obtenerCorreoUsuario(usuario_id);
     await enviarCorreoReserva(userCorreo, detallesReserva);
 
@@ -23,6 +61,7 @@ exports.crearReserva = async (req, res) => {
     res.status(500).json({ error: 'Error al crear la reserva' });
   }
 };
+
 
 // Obtener todas las reservas
 exports.obtenerTodasLasReservas = async (req, res) => {
@@ -110,3 +149,19 @@ exports.obtenerDisponibilidadPorRango = async (req, res) => {
       res.status(500).json({ error: 'Error al obtener disponibilidad' });
   }
 };
+
+// Contar reservas por usuario en una fecha específica
+exports.contarReservasPorFecha = async (req, res) => {
+  const { usuarioId, fecha } = req.params;
+
+  try {
+      const totalReservas = await reservasModel.contarReservasPorFecha(usuarioId, fecha);
+
+      res.status(200).json({ usuarioId, fecha, totalReservas });
+  } catch (error) {
+      console.error('Error al contar las reservas:', error);
+      res.status(500).json({ error: 'Error al contar las reservas' });
+  }
+};
+
+

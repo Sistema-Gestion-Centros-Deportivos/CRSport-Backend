@@ -16,8 +16,8 @@ const { authenticateToken, isAdmin } = require('../middlewares/authMiddleware');
 /**
  * @swagger
  * tags:
- *   name: Instalaciones
- *   description: Endpoints para gestionar instalaciones
+ *   - name: Instalaciones
+ *     description: Endpoints para gestionar instalaciones
  */
 
 /**
@@ -57,6 +57,14 @@ const { authenticateToken, isAdmin } = require('../middlewares/authMiddleware');
  *           type: string
  *           description: URL de la imagen de la instalación
  *           example: https://example.com/uploads/sala-conferencias.jpg
+ *         tipo_reserva:
+ *           type: string
+ *           description: Tipo de reserva de la instalación
+ *           example: "gratuita"
+ *         valor:
+ *           type: integer
+ *           description: Valor de la reserva de la instalación
+ *           example: 0
  */
 
 /**
@@ -173,6 +181,14 @@ router.post('/subir-imagen', upload.single('imagen'), subirImagenFirebase);
  *                 format: date-time
  *                 description: Fecha y hora hasta la cual la instalación está disponible
  *                 example: "2024-09-25T18:00:00Z"
+ *               tipo_reserva:
+ *                type: string
+ *                description: Tipo de reserva de la instalación
+ *                example: "gratuita"
+ *               valor:
+ *                type: integer
+ *                description: Valor de la reserva de la instalación
+ *                example: 0
  *               imagen_url:
  *                 type: string
  *                 description: URL de la imagen de la instalación subida a Firebase

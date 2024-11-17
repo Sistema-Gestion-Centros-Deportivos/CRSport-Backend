@@ -1,7 +1,7 @@
 // reservasRoutes.js
 const express = require('express');
 const router = express.Router();
-const { crearReserva, modificarReserva, eliminarReserva, obtenerTodasLasReservas, obtenerReservasPorUsuario, obtenerReservasPorInstalacionYFecha, obtenerDisponibilidadPorRango, eliminarYLiberarReserva } = require('../controllers/reservasController');
+const { crearReserva, modificarReserva, eliminarReserva, obtenerTodasLasReservas, obtenerReservasPorUsuario, obtenerReservasPorInstalacionYFecha, obtenerDisponibilidadPorRango, eliminarYLiberarReserva, contarReservasPorFecha } = require('../controllers/reservasController');
 const { authenticateToken, isAdmin } = require('../middlewares/authMiddleware');
 
 /**
@@ -306,6 +306,47 @@ router.delete('/:reservaId', authenticateToken, eliminarYLiberarReserva);
  *         description: Error al obtener disponibilidad
  */
 router.get('/instalacion/:instalacionId/disponibilidad', authenticateToken,  obtenerDisponibilidadPorRango);
+
+/**
+ * @swagger
+ * /reservas/usuario/{usuarioId}/fecha/{fecha}:
+ *   get:
+ *     summary: Contar reservas de un usuario en una fecha específica
+ *     tags: [Reservas]
+ *     parameters:
+ *       - in: path
+ *         name: usuarioId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           description: ID del usuario
+ *       - in: path
+ *         name: fecha
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *           description: Fecha para contar reservas (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: Número total de reservas del usuario en la fecha
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 usuarioId:
+ *                   type: integer
+ *                 fecha:
+ *                   type: string
+ *                   format: date
+ *                 totalReservas:
+ *                   type: integer
+ *       500:
+ *         description: Error al contar las reservas
+ */
+router.get('/usuario/:usuarioId/fecha/:fecha', contarReservasPorFecha);
+
 
 
 module.exports = router;
