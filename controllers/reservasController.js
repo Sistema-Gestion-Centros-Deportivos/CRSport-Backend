@@ -11,7 +11,7 @@ exports.crearReserva = async (req, res) => {
   const LIMITE_RESERVAS_POR_DIA = 5;
 
   try {
-    // Obtener detalles del bloque y la instalación
+    // Verificar el bloque y la instalación
     const bloque = await reservasModel.obtenerBloquePorId(instalacion_bloque_periodico_id);
     if (!bloque) {
       return res.status(400).json({ error: 'Bloque no encontrado' });
@@ -30,38 +30,34 @@ exports.crearReserva = async (req, res) => {
       return res.status(400).json({ error: 'Has alcanzado el límite de reservas para este día.' });
     }
 
-    // Flujo para instalaciones premium
     if (tipo_instalacion === 'premium') {
+      // Flujo de pago
+      const reservaId = await reservasModel.crearReserva(usuario_id, instalacion_bloque_periodico_id, 1);
+
       const transaction = new WebpayPlus.Transaction();
       const buyOrder = `order-${Date.now()}`;
       const sessionId = `session-${usuario_id}`;
       const returnUrl = `${process.env.BASE_URL}/pagos/confirmar`;
-      const finalUrl = `${process.env.BASE_URL}/pagos/resultado`;
-
-      // Crear transacción en Webpay Plus
       const response = await transaction.create(buyOrder, sessionId, valor, returnUrl);
 
-      // Guardar pago pendiente
-      await pagosModel.crearPago(usuario_id, null, valor, 'pendiente', response.token);
+      await pagosModel.crearPago(usuario_id, reservaId, valor, 'pendiente', response.token);
 
       return res.status(200).json({ url: response.url, token: response.token });
+    } else {
+      // Flujo gratuito
+      const reservaId = await reservasModel.crearReserva(usuario_id, instalacion_bloque_periodico_id, 2);
+
+      const detallesReserva = await reservasModel.obtenerDetallesReserva(reservaId);
+      const userCorreo = await reservasModel.obtenerCorreoUsuario(usuario_id);
+      await enviarCorreoReserva(userCorreo, detallesReserva);
+
+      return res.status(201).json({ message: 'Reserva creada exitosamente y correo enviado', reservaId });
     }
-
-    // Flujo para instalaciones gratuitas
-    const reservaId = await reservasModel.crearReserva(usuario_id, instalacion_bloque_periodico_id);
-
-    // Obtener detalles de la reserva para el correo
-    const detallesReserva = await reservasModel.obtenerDetallesReserva(reservaId);
-    const userCorreo = await reservasModel.obtenerCorreoUsuario(usuario_id);
-    await enviarCorreoReserva(userCorreo, detallesReserva);
-
-    res.status(201).json({ message: 'Reserva creada exitosamente y correo enviado', reservaId });
   } catch (error) {
     console.error('Error al crear la reserva:', error);
     res.status(500).json({ error: 'Error al crear la reserva' });
   }
 };
-
 
 // Obtener todas las reservas
 exports.obtenerTodasLasReservas = async (req, res) => {

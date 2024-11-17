@@ -1,11 +1,10 @@
 // reservasModel.js
 const { getConnection } = require('../config/db');
 
-// Crear una nueva reserva
-exports.crearReserva = async (usuarioId, instalacionBloquePeriodicoId, estadoId = 2) => {
+// Crear una nueva reserva con estado inicial
+exports.crearReserva = async (usuarioId, instalacionBloquePeriodicoId, estadoId) => {
   const client = await getConnection();
   try {
-    // Iniciar una transacción
     await client.query('BEGIN');
 
     // Verificar si el bloque está disponible
@@ -15,12 +14,11 @@ exports.crearReserva = async (usuarioId, instalacionBloquePeriodicoId, estadoId 
       WHERE id = $1
     `;
     const { rows: disponibilidadRows } = await client.query(verificarDisponibilidadQuery, [instalacionBloquePeriodicoId]);
-
     if (!disponibilidadRows[0] || !disponibilidadRows[0].disponible) {
       throw new Error('El bloque no está disponible.');
     }
 
-    // Insertar la reserva
+    // Insertar la reserva con el estado correspondiente
     const insertReservaQuery = `
       INSERT INTO reservas (usuario_id, estado_id, instalacion_bloque_periodico_id)
       VALUES ($1, $2, $3) RETURNING id
@@ -28,21 +26,59 @@ exports.crearReserva = async (usuarioId, instalacionBloquePeriodicoId, estadoId 
     const { rows } = await client.query(insertReservaQuery, [usuarioId, estadoId, instalacionBloquePeriodicoId]);
     const reservaId = rows[0].id;
 
+    if (estadoId === 2) {
+      // Si es gratuita, actualizar la disponibilidad del bloque
+      const updateDisponibilidadQuery = `
+        UPDATE instalaciones_bloques_periodicos
+        SET disponible = FALSE
+        WHERE id = $1
+      `;
+      await client.query(updateDisponibilidadQuery, [instalacionBloquePeriodicoId]);
+    }
+
+    await client.query('COMMIT');
+    return reservaId;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error al crear la reserva:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+// Confirmar reserva por pago exitoso
+exports.confirmarReserva = async (reservaId) => {
+  const client = await getConnection();
+  try {
+    await client.query('BEGIN');
+
+    // Cambiar el estado de la reserva a "confirmada"
+    const updateReservaQuery = `
+      UPDATE reservas
+      SET estado_id = 2
+      WHERE id = $1
+      RETURNING instalacion_bloque_periodico_id
+    `;
+    const { rows } = await client.query(updateReservaQuery, [reservaId]);
+    const instalacionBloquePeriodicoId = rows[0]?.instalacion_bloque_periodico_id;
+
+    if (!instalacionBloquePeriodicoId) {
+      throw new Error('El bloque asociado a la reserva no fue encontrado.');
+    }
+
     // Actualizar la disponibilidad del bloque
-    const updateDisponibilidadQuery = `
+    const liberarBloqueQuery = `
       UPDATE instalaciones_bloques_periodicos
       SET disponible = FALSE
       WHERE id = $1
     `;
-    await client.query(updateDisponibilidadQuery, [instalacionBloquePeriodicoId]);
+    await client.query(liberarBloqueQuery, [instalacionBloquePeriodicoId]);
 
-    // Confirmar la transacción
     await client.query('COMMIT');
-    return reservaId;
   } catch (error) {
-    // Revertir la transacción en caso de error
     await client.query('ROLLBACK');
-    console.error('Error al crear la reserva:', error);
+    console.error('Error al confirmar la reserva:', error);
     throw error;
   } finally {
     client.release();

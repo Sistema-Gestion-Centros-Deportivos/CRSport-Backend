@@ -150,3 +150,40 @@ exports.actualizarPagoPorToken = async (token, estado) => {
         client.release();
     }
 };
+
+// Obtener reserva_id por token de transacción
+exports.obtenerReservaIdPorToken = async (token) => {
+    const client = await getConnection();
+    try {
+      const query = `
+        SELECT reserva_id
+        FROM pagos
+        WHERE transaccion_id = $1
+      `;
+      const result = await client.query(query, [token]);
+      return result.rows[0]?.reserva_id || null;
+    } catch (error) {
+      console.error('Error al obtener reserva por token:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+};
+
+// Actualizar estado del pago
+exports.actualizarEstadoPago = async (token, nuevoEstado) => {
+    const client = await getConnection();
+    try {
+        const query = `
+            UPDATE pagos
+            SET estado = $1, actualizado_en = NOW()
+            WHERE transaccion_id = $2
+        `;
+        await client.query(query, [nuevoEstado, token]);
+    } catch (error) {
+        console.error('Error al actualizar el estado del pago:', error);
+        throw error;
+    } finally {
+        client.release();
+    }
+};
