@@ -61,11 +61,10 @@ exports.confirmarPago = async (req, res) => {
             const userCorreo = await reservasModel.obtenerCorreoUsuario(usuario_id);
             await enviarCorreoReserva(userCorreo, detallesReserva);
 
-            res.status(200).json({ message: 'Pago confirmado y reserva completada' });
+            res.redirect(`${process.env.FRONTEND_URL}/pagos/detalles/${token_ws}`);
         } else {
-            // Actualizar estado como fallido si no se autoriza el pago
-            await pagosModel.actualizarEstadoPago(token_ws, 'fallido');
-            res.status(400).json({ error: 'El pago no fue autorizado' });
+        await pagosModel.actualizarEstadoPago(token_ws, 'fallido');
+        res.redirect(`${process.env.FRONTEND_URL}/pagos/error`);
         }
     } catch (error) {
         console.error('Error al confirmar el pago:', error);
@@ -87,3 +86,20 @@ exports.resultadoPago = async (req, res) => {
         res.status(500).json({ error: 'Error al obtener el estado del pago' });
     }
 };
+
+
+exports.obtenerDetallesPago = async (req, res) => {
+    const { token_ws } = req.params;
+  
+    try {
+      const detalles = await pagosModel.obtenerDetallesTransaccion(token_ws);
+      if (!detalles) {
+        return res.status(404).json({ error: 'Detalles de la transacción no encontrados' });
+      }
+      res.status(200).json(detalles);
+    } catch (error) {
+      console.error('Error al obtener los detalles del pago:', error);
+      res.status(500).json({ error: 'Error al obtener los detalles del pago' });
+    }
+};
+  

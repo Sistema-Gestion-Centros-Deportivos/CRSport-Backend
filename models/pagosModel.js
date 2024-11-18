@@ -187,3 +187,30 @@ exports.actualizarEstadoPago = async (token, nuevoEstado) => {
         client.release();
     }
 };
+
+
+exports.obtenerDetallesTransaccion = async (token) => {
+    const client = await getConnection();
+    try {
+      const query = `
+        SELECT 
+          pagos.monto, pagos.estado, pagos.fecha_pago, 
+          reservas.instalacion_bloque_periodico_id,
+          instalaciones.id AS id_instalacion,
+          instalaciones.nombre AS nombre_instalacion
+        FROM pagos
+        JOIN reservas ON pagos.reserva_id = reservas.id
+        JOIN instalaciones_bloques_periodicos ON reservas.instalacion_bloque_periodico_id = instalaciones_bloques_periodicos.id
+        JOIN instalaciones ON instalaciones_bloques_periodicos.instalacion_id = instalaciones.id
+        WHERE pagos.transaccion_id = $1
+      `;
+      const { rows } = await client.query(query, [token]);
+      return rows[0];
+    } catch (error) {
+      console.error('Error al obtener detalles de la transacción:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+};
+  

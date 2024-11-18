@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pagosController = require('../controllers/pagosController');
-const { iniciarPago, confirmarPago, resultadoPago } = require('../controllers/pagosController');
+const { iniciarPago, confirmarPago, resultadoPago, obtenerDetallesPago } = require('../controllers/pagosController');
 
 /**
  * @swagger
@@ -72,16 +72,48 @@ router.post('/iniciar', iniciarPago);
  */
 router.get('/confirmar', confirmarPago);
 
-module.exports = router;
-
-
 /**
  * @swagger
  * /pagos/resultado:
  *   get:
- *     summary: Ver el resultado de una transacción
+ *     summary: Obtener el resultado de una transacción
  *     tags: [Pagos]
+ *     parameters:
+ *       - in: query
+ *         name: token_ws
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Token de la transacción
+ *     responses:
+ *       200:
+ *         description: Resultado de la transacción
+ *       500:
+ *         description: Error al obtener el estado del pago
+ * 
  */
 router.get('/resultado', resultadoPago);
+
+/**
+ * @swagger
+ * /pagos/detalles/{token_ws}:
+ *   get:
+ *     summary: Obtener detalles de una transacción por token
+ *     tags: [Pagos]
+ *     parameters:
+ *       - in: path
+ *         name: token_ws
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Detalles de la transacción
+ *       404:
+ *         description: Transacción no encontrada
+ *       500:
+ *         description: Error al obtener los detalles
+ */
+router.get('/detalles/:token_ws', obtenerDetallesPago);
 
 module.exports = router;
