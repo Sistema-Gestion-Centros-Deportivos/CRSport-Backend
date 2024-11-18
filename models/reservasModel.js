@@ -425,3 +425,22 @@ exports.crearReservaPorPagoExitoso = async (buyOrder) => {
       client.release();
   }
 };
+
+// Obtener el usuario_id asociado a una reserva
+exports.obtenerUsuarioPorReserva = async (reservaId) => {
+  const client = await getConnection();
+  try {
+      const query = `
+          SELECT usuario_id
+          FROM reservas
+          WHERE id = $1
+      `;
+      const { rows } = await client.query(query, [reservaId]);
+      return rows[0]?.usuario_id || null;
+  } catch (error) {
+      console.error('Error al obtener el usuario por reserva:', error);
+      throw error;
+  } finally {
+      client.release();
+  }
+};

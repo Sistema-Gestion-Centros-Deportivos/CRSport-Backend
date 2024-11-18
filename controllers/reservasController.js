@@ -33,7 +33,7 @@ exports.crearReserva = async (req, res) => {
     if (tipo_instalacion === 'premium') {
       // Flujo de pago
       const reservaId = await reservasModel.crearReserva(usuario_id, instalacion_bloque_periodico_id, 1);
-
+      console.log('usuarioId', usuario_id);
       const transaction = new WebpayPlus.Transaction();
       const buyOrder = `order-${Date.now()}`;
       const sessionId = `session-${usuario_id}`;

@@ -1,6 +1,7 @@
 const { WebpayPlus } = require('transbank-sdk');
 const pagosModel = require('../models/pagosModel');
 const reservasModel = require('../models/reservasModel');
+const { enviarCorreoReserva } = require('../services/emailService');
 
 // Iniciar una transacción
 exports.iniciarPago = async (req, res) => {
@@ -47,6 +48,18 @@ exports.confirmarPago = async (req, res) => {
 
             // Actualizar el estado del pago
             await pagosModel.actualizarEstadoPago(token_ws, 'completado');
+
+            // Obtener el usuario asociado a la reserva
+            const usuario_id = await reservasModel.obtenerUsuarioPorReserva(reservaId);
+            if (!usuario_id) {
+                console.error('Usuario no encontrado para la reserva:', reservaId);
+                return res.status(404).json({ error: 'Usuario no encontrado para la reserva' });
+            }
+
+            // Enviar correo de confirmación
+            const detallesReserva = await reservasModel.obtenerDetallesReserva(reservaId);
+            const userCorreo = await reservasModel.obtenerCorreoUsuario(usuario_id);
+            await enviarCorreoReserva(userCorreo, detallesReserva);
 
             res.status(200).json({ message: 'Pago confirmado y reserva completada' });
         } else {
